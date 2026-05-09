@@ -1017,422 +1017,100 @@ function orderCard(o, col, canEdit){
 function bWeekPlanner(approvedOrders){
   const days=['Ma','Di','Wo','Do','Vr','Za','Zo'];
   const today=new Date();
+  
+  // Week offset - 0 = current week, 1 = next week, etc.
+  const weekOffset=S.plannerWeekOffset||0;
+  
+  // Calculate start of current week (Monday)
+  const currentMonday=new Date(today);
+  const dayOfWeek=today.getDay()||7;
+  currentMonday.setDate(today.getDate()-dayOfWeek+1);
+  currentMonday.setHours(0,0,0,0);
+  
+  // Apply offset
+  const weekMonday=new Date(currentMonday);
+  weekMonday.setDate(currentMonday.getDate()+weekOffset*7);
+  
   const weekDates=days.map((_,i)=>{
-    const d=new Date(today);
-    const day=today.getDay()||7;
-    d.setDate(today.getDate()-day+1+i);
+    const d=new Date(weekMonday);
+    d.setDate(weekMonday.getDate()+i);
     return d;
   });
-  // Add next Monday as extra option
-  const nextMonday=new Date(today);
-  const dayOfWeek=today.getDay()||7;
-  nextMonday.setDate(today.getDate()-dayOfWeek+8);
-  const allDates=[...weekDates,nextMonday];
-  const allDayLabels=[...days,'Ma (vw)'];
-
+  
+  const allDates=[...weekDates];
+  const allDayLabels=[...days];
+  
+  // Week label
+  const weekStart=weekDates[0];
+  const weekEnd=weekDates[6];
+  const weekLabel=weekOffset===0?'Deze week':weekOffset===1?'Volgende week':
+    weekOffset===-1?'Vorige week':
+    `${weekStart.getDate()}/${weekStart.getMonth()+1} – ${weekEnd.getDate()}/${weekEnd.getMonth()+1}`;
+  
+  // Filter orders for this week's dates
+  const weekDateStrs=weekDates.map(d=>d.toISOString().slice(0,10));
+  const unplannedOrders=approvedOrders.filter(o=>!o.delivery_date);
+  const thisWeekOrders=approvedOrders.filter(o=>weekDateStrs.includes(o.delivery_date));
+  
   return`<div>
-    ${approvedOrders.filter(o=>!o.delivery_date).length?`
-    <div style="margin-bottom:10px">
-      <div style="font-size:11px;color:var(--t2);margin-bottom:6px;font-weight:500">Niet ingepland (${approvedOrders.filter(o=>!o.delivery_date).length}):</div>
-      ${approvedOrders.filter(o=>!o.delivery_date).map(o=>{
+    <!-- Week navigator -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;background:var(--bg2);border-radius:var(--r1);padding:8px 12px">
+      <button class="btn bsm" onclick="S.plannerWeekOffset=(S.plannerWeekOffset||0)-1;render()" style="font-size:16px;padding:4px 10px">←</button>
+      <div style="text-align:center">
+        <div style="font-weight:600;font-size:14px">${weekLabel}</div>
+        <div style="font-size:11px;color:var(--t2)">${weekStart.getDate()}/${weekStart.getMonth()+1} – ${weekEnd.getDate()}/${weekEnd.getMonth()+1}/${weekEnd.getFullYear()}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        ${weekOffset!==0?`<button class="btn bsm" onclick="S.plannerWeekOffset=0;render()" style="font-size:11px">Vandaag</button>`:''}
+        <button class="btn bsm" onclick="S.plannerWeekOffset=(S.plannerWeekOffset||0)+1;render()" style="font-size:16px;padding:4px 10px">→</button>
+      </div>
+    </div>
+
+    ${unplannedOrders.length?`
+    <div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--t2);margin-bottom:6px;font-weight:500">Niet ingepland (${unplannedOrders.length}):</div>
+      ${unplannedOrders.map(o=>{
         const st=S.stores.find(x=>x.id===o.store_id);
         const num=String(o.order_number||o.id).padStart(4,'0');
         return`<div style="background:var(--bg2);border-radius:var(--r1);padding:8px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center">
           <span><strong style="color:#D4537E">#${num}</strong> ${st?st.name:'—'}</span>
-          <select class="plan-date" data-id="${o.id}" style="height:28px;font-size:11px;width:120px">
+          <select class="plan-date" data-id="${o.id}" style="height:28px;font-size:11px;width:130px">
             <option value="">Kies dag...</option>
-            ${allDates.map((d,i)=>`<option value="${d.toISOString().slice(0,10)}">${allDayLabels[i]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
+            ${allDates.map((d,j)=>`<option value="${d.toISOString().slice(0,10)}">${allDayLabels[j]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
           </select>
         </div>`;
       }).join('')}
     </div>`:''}
+
     ${weekDates.map((d,i)=>{
       const dateStr=d.toISOString().slice(0,10);
       const dayOrders=approvedOrders.filter(o=>o.delivery_date===dateStr);
-      if(!dayOrders.length)return'';
+      const isToday=dateStr===today.toISOString().slice(0,10);
+      const isPast=d<new Date(today.toISOString().slice(0,10));
       return`<div style="margin-bottom:8px">
-        <div style="font-size:11px;font-weight:600;color:#0C5C8A;margin-bottom:4px;padding:3px 6px;background:rgba(12,92,138,0.08);border-radius:4px">${days[i]} ${d.getDate()}/${d.getMonth()+1} (${dayOrders.length})</div>
-        ${dayOrders.map(o=>{
+        <div style="font-size:11px;font-weight:600;color:${isToday?'#D4537E':isPast?'var(--t3)':'#0C5C8A'};margin-bottom:4px;padding:4px 8px;background:${isToday?'rgba(212,83,126,0.1)':isPast?'var(--bg2)':'rgba(12,92,138,0.08)'};border-radius:4px;display:flex;justify-content:space-between;align-items:center">
+          <span>${days[i]} ${d.getDate()}/${d.getMonth()+1}${isToday?' (Vandaag)':''}</span>
+          <span style="opacity:0.6">${dayOrders.length} order${dayOrders.length!==1?'s':''}</span>
+        </div>
+        ${dayOrders.length?dayOrders.map(o=>{
           const st=S.stores.find(x=>x.id===o.store_id);
           const num=String(o.order_number||o.id).padStart(4,'0');
-          return`<div style="background:var(--bg2);border-radius:var(--r1);padding:6px 8px;margin-bottom:4px;font-size:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span><strong style="color:#D4537E">#${num}</strong> ${st?st.name:'—'}</span>
+          return`<div style="background:var(--bg2);border-radius:var(--r1);padding:8px 10px;margin-bottom:4px;font-size:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+              <span><strong style="color:#D4537E">#${num}</strong> <span style="font-weight:500">${st?st.name:'—'}</span></span>
               <button class="btn bp bsm" style="background:#085041;font-size:10px" onclick="sendToDriver(${o.id})">🚚 Stuur</button>
             </div>
-            <select class="plan-date" data-id="${o.id}" style="height:26px;font-size:10px;width:100%;color:var(--t2)">
+            <select class="plan-date" data-id="${o.id}" style="height:24px;font-size:10px;width:100%;color:var(--t2)">
               <option value="">📅 Verander dag...</option>
-              ${allDates.map((d,j)=>`<option value="${d.toISOString().slice(0,10)}">${allDayLabels[j]} ${d.getDate()}/${d.getMonth()+1}</option>`).join('')}
+              ${allDates.map((d2,j)=>`<option value="${d2.toISOString().slice(0,10)}" ${d2.toISOString().slice(0,10)===dateStr?'selected':''}>${allDayLabels[j]} ${d2.getDate()}/${d2.getMonth()+1}</option>`).join('')}
             </select>
           </div>`;
-        }).join('')}
+        }).join(''):`<div style="padding:6px 8px;font-size:11px;color:var(--t3);font-style:italic">Geen orders gepland</div>`}
       </div>`;
     }).join('')}
   </div>`;
 }
 
-
-function bStores(){
-  const l=t();
-  // If a store is selected, show detail view
-  if(S.selectedStore){
-    const store=S.stores.find(s=>s.id===S.selectedStore);
-    if(!store)S.selectedStore=null;
-    else return bStoreDetail(store,l);
-  }
-  return`<div class="panel">
-  <div class="ph"><span class="pht">${l.stores} (${S.stores.length})</span>
-    <div style="display:flex;gap:6px">
-      <button class="btn bsm" onclick="showExportModal('allstores',null,'all')">📤 Export alle</button>
-      <button class="btn bp bsm" id="add-store-btn">${l.addStore}</button>
-    </div>
-  </div>
-  <div class="tw"><table>
-    <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
-    <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.total}</th><th>${l.products}</th><th></th></tr></thead>
-    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
-      <td style="font-weight:500;color:#D4537E">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
-      <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
-      <td><button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button></td>
-    </tr>`).join('')}</tbody>
-  </table></div>
-</div>`}
-
-function bStoreDetail(store,l){
-  const maxQ=Math.max(1,...S.products.map(p=>qty(store.id,p.id)));
-  const sw=S.storeSearch||'';
-  const sf=S.storeStatusFilter||'all';
-  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name)).filter(p=>{
-    if(sw&&!p.name.toLowerCase().includes(sw.toLowerCase())&&!p.sku.toLowerCase().includes(sw.toLowerCase())&&!p.category.toLowerCase().includes(sw.toLowerCase()))return false;
-    if(sf==='low'){const q=qty(store.id,p.id);return p.min_stock>0&&q>0&&q<p.min_stock}
-    if(sf==='out'){const q=qty(store.id,p.id);return p.min_stock>0&&q===0}
-    if(sf==='ok'){const q=qty(store.id,p.id);return p.min_stock===0||(q>=p.min_stock)}
-    return true;
-  });
-  return`<div>
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
-    <button class="btn bsm" id="back-stores-btn">← ${t().back}</button>
-    <span style="font-size:16px;font-weight:500">${store.name}</span>
-    <span style="font-size:13px;color:var(--t2)">${store.city}</span>
-    <span class="badge bstr">${storeTotal(store.id)} stuks</span>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1rem">
-    <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${storeTotal(store.id)}</div></div>
-    <div class="met"><div class="met-l">${l.inStock}</div><div class="met-v">${storeItems(store.id)}</div></div>
-    <div class="met"><div class="met-l" style="color:#854F0B">${l.lowStock}</div><div class="met-v" style="color:${AMBER}">${S.products.filter(p=>p.min_stock>0&&qty(store.id,p.id)>0&&qty(store.id,p.id)<p.min_stock).length}</div></div>
-    <div class="met"><div class="met-l" style="color:#A32D2D">${l.outOfStock}</div><div class="met-v" style="color:${RED}">${S.products.filter(p=>p.min_stock>0&&qty(store.id,p.id)===0).length}</div></div>
-  </div>
-  <div class="panel">
-    <div class="ph">
-      <span class="pht">${l.stockOv} — ${store.name}</span>
-      <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-        <input type="text" id="store-srch" placeholder="${l.search}" value="${sw}" style="width:130px;height:30px;font-size:12px">
-        <select id="store-sf" style="height:30px;font-size:12px">
-          <option value="all" ${sf==='all'?'selected':''}>${l.allSt}</option>
-          <option value="ok" ${sf==='ok'?'selected':''}>${l.ok}</option>
-          <option value="low" ${sf==='low'?'selected':''}>${l.low}</option>
-          <option value="out" ${sf==='out'?'selected':''}>${l.outSt}</option>
-        </select>
-        <button class="btn bsm" onclick="showExportModal('store',${store.id})">📤 Voorraad</button>
-        <button class="btn bd bsm" onclick="confirmStockReset(${store.id},'${store.name}')">🔄 Reset stock</button>
-        <button class="btn bsm" onclick="showExportModal('storeorders',${store.id})">📤 Orders</button>
-      </div>
-    </div>
-    <div class="tw"><table>
-      <colgroup><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:60px"><col style="width:120px"><col style="width:65px"><col style="width:75px"></colgroup>
-      <thead><tr><th>${l.product}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size} (kg)</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th></tr></thead>
-      <tbody>${sorted.length?sorted.map(p=>{
-        const q=qty(store.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
-        return`<tr>
-          <td style="font-weight:500">${p.name}</td>
-          <td style="color:var(--t2)">${p.sku}</td>
-          <td>${p.category}</td>
-          <td>${p.size}</td>
-          <td><div class="barcell"><span style="min-width:28px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
-          <td style="color:var(--t2)">${p.min_stock}</td>
-          <td>${sbadge(q,p.min_stock)}</td>
-        </tr>`;
-      }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
-      </tbody>
-    </table></div>
-  </div>
-</div>`}
-
-function bProducts(){
-  const l=t();
-  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
-  const ps=S.productSearch||'';
-  const filtered=sorted.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||p.sku.toLowerCase().includes(ps.toLowerCase())||p.category.toLowerCase().includes(ps.toLowerCase()));
-  return`<div class="panel">
-  <div class="ph"><span class="pht">${l.products}</span>
-    <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-      <input type="text" id="psrch" placeholder="${l.search}" value="${ps}" style="width:140px;height:30px;font-size:12px">
-      <button class="btn bsm" id="bulk-import-btn">📥 Import Excel</button>
-      <button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button>
-    </div>
-  </div>
-  <div class="tw"><table>
-    <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:100px"></colgroup>
-    <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size} (kg)</th><th>${l.min}</th><th>${l.totalLbl}</th><th></th></tr></thead>
-    <tbody>${filtered.length?filtered.map(p=>`<tr>
-      <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
-      <td>${p.category}</td><td>${p.size}</td><td>${p.min_stock}</td>
-      <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
-      <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button>${S.session.role==='admin'?`<button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button>`:''}</td>
-    </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
-    </tbody>
-  </table></div>
-</div>`}
-
-function bWeeklyRequests(){
-  const weekStart=getWeekStart();
-  const thisWeek=[...(S.weeklyRequests||[])].filter(r=>r.week_start===weekStart).sort((a,b)=>b.quantity-a.quantity);
-  const maxQty=Math.max(1,...thisWeek.map(r=>r.quantity));
-  const totalQty=thisWeek.reduce((a,r)=>a+r.quantity,0);
-  const nextReset=getNextSunday();
-  const now=new Date();
-  const diff=nextReset-now;
-  const days=Math.floor(diff/(1000*60*60*24));
-  const hours=Math.floor((diff%(1000*60*60*24))/(1000*60*60));
-  const mins=Math.floor((diff%(1000*60*60))/(1000*60));
-  const resetStr=days>0?`${days}d ${hours}u`:`${hours}u ${mins}m`;
-  const colors=['#D4537E','#E07B39','#E0B939','#639922','#4A90D9','#9B59B6','#1ABC9C','#E74C3C','#F39C12','#2ECC71'];
-  const size=180,cx=size/2,cy=size/2,r=75,innerR=40;
-  let slices='',angle=-90;
-  thisWeek.slice(0,10).forEach((item,i)=>{
-    const pct=item.quantity/totalQty;
-    const startAngle=angle,endAngle=angle+pct*360;
-    const s=angle*(Math.PI/180),e=endAngle*(Math.PI/180);
-    const x1=cx+r*Math.cos(s),y1=cy+r*Math.sin(s),x2=cx+r*Math.cos(e),y2=cy+r*Math.sin(e);
-    const ix1=cx+innerR*Math.cos(s),iy1=cy+innerR*Math.sin(s),ix2=cx+innerR*Math.cos(e),iy2=cy+innerR*Math.sin(e);
-    const large=pct>0.5?1:0,col=colors[i%colors.length];
-    slices+=`<path d="M${ix1},${iy1} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${innerR},${innerR} 0 ${large},0 ${ix1},${iy1}" fill="${col}" stroke="var(--bg1)" stroke-width="1.5" opacity="0.9"/>`;
-    angle=endAngle;
-  });
-  return`<div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
-    <div class="met"><div class="met-l">Producten</div><div class="met-v">${thisWeek.length}</div></div>
-    <div class="met"><div class="met-l">Totaal stuks</div><div class="met-v">${totalQty}</div></div>
-    <div class="met"><div class="met-l">Reset over</div><div class="met-v" style="font-size:15px">${resetStr}</div></div>
-    <div class="met"><div class="met-l">Week van</div><div class="met-v" style="font-size:14px">${weekStart}</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:${thisWeek.length?'220px 1fr':'1fr'};gap:12px;align-items:start">
-    ${thisWeek.length?`<div class="panel" style="padding:1rem;display:flex;flex-direction:column;align-items:center">
-      <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:10px">Verdeling</div>
-      <svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">${slices}<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--t2)">${thisWeek.length} prod.</text></svg>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;justify-content:center">
-        ${thisWeek.slice(0,10).map((r,i)=>`<div style="display:flex;align-items:center;gap:4px;font-size:10px"><div style="width:8px;height:8px;border-radius:50%;background:${colors[i%colors.length]}"></div><span style="color:var(--t2)">${r.product_name.slice(0,12)}${r.product_name.length>12?'…':''}</span></div>`).join('')}
-      </div>
-    </div>`:''}
-    <div class="panel">
-      <div class="ph"><span class="pht">📈 Meest aangevraagd deze week</span><button class="btn bd bsm" onclick="resetWeeklyRequests()">🔄 Reset</button></div>
-      <div class="tw"><table>
-        <colgroup><col style="width:35px"><col style="width:160px"><col style="width:70px"><col style="width:70px"><col style="width:auto"></colgroup>
-        <thead><tr><th>#</th><th>Product</th><th>SKU</th><th>Stuks</th><th>Grafiek</th></tr></thead>
-        <tbody>${thisWeek.length?thisWeek.map((r,i)=>{
-          const pct=Math.round(r.quantity/maxQty*100),col=colors[i%colors.length];
-          return`<tr><td style="font-weight:700;color:${col}">${i+1}</td><td style="font-weight:500">${r.product_name}</td><td style="color:var(--t2);font-size:11px">${r.product_sku}</td><td><span style="font-size:16px;font-weight:700;color:${col}">${r.quantity}</span></td><td><div class="barbg"><div class="barfill" style="width:${pct}%;background:${col}"></div></div></td></tr>`;
-        }).join(''):`<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--t3)">Nog geen aanvragen deze week</td></tr>`}
-        </tbody>
-      </table></div>
-    </div>
-  </div>
-</div>`}
-
-function bExportPage(){
-  const exp=S.exportPage||{type:'orders',format:'excel',period:'month',storeId:'all',status:'all'};
-  return`<div>
-  <div class="panel">
-    <div class="ph"><span class="pht">📤 Export centrum</span></div>
-    <div style="padding:1rem">
-      <div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">${t().whatExport}</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn ${exp.type==='orders'?'bp':''} exp-type" data-val="orders">📦 Orders</button>
-          <button class="btn ${exp.type==='stock'?'bp':''} exp-type" data-val="stock">📊 Voorraad</button>
-          <button class="btn ${exp.type==='complaints'?'bp':''} exp-type" data-val="complaints">📋 Klachten</button>
-        </div>
-      </div>
-      <div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">FORMAAT</div>
-        <div style="display:flex;gap:6px">
-          <button class="btn ${exp.format==='excel'?'bp':''} exp-format" data-val="excel">📊 Excel (.xlsx)</button>
-          <button class="btn ${exp.format==='pdf'?'bp':''} exp-format" data-val="pdf">📄 PDF</button>
-        </div>
-      </div>
-      <div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">WINKEL</div>
-        <select id="exp-store" style="height:34px;font-size:13px;max-width:300px">
-          <option value="all" ${exp.storeId==='all'?'selected':''}>Alle winkels</option>
-          ${S.stores.map(s=>`<option value="${s.id}" ${exp.storeId==s.id?'selected':''}>${s.name}</option>`).join('')}
-        </select>
-      </div>
-      ${exp.type!=='stock'?`<div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">PERIODE</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn ${exp.period==='day'?'bp':''} exp-period" data-val="day">${t().today}</button>
-          <button class="btn ${exp.period==='week'?'bp':''} exp-period" data-val="week">${t().thisWeek}</button>
-          <button class="btn ${exp.period==='month'?'bp':''} exp-period" data-val="month">${t().thisMonth}</button>
-          <button class="btn ${exp.period==='year'?'bp':''} exp-period" data-val="year">${t().thisYear}</button>
-          <button class="btn ${exp.period==='all'?'bp':''} exp-period" data-val="all">${t().allTime}</button>
-        </div>
-      </div>`:''}
-      ${exp.type==='orders'?`<div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
-          <button class="btn ${exp.status==='new'?'bp':''} exp-status" data-val="new">Nieuw</button>
-          <button class="btn ${exp.status==='approved'?'bp':''} exp-status" data-val="approved">Goedgekeurd</button>
-          <button class="btn ${exp.status==='sent'?'bp':''} exp-status" data-val="sent">Onderweg</button>
-          <button class="btn ${exp.status==='done'?'bp':''} exp-status" data-val="done">Geleverd</button>
-        </div>
-      </div>`:''}
-      ${exp.type==='complaints'?`<div style="margin-bottom:1.2rem">
-        <div style="font-size:12px;font-weight:500;color:var(--t2);margin-bottom:8px">STATUS</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
-          <button class="btn ${exp.status==='open'?'bp':''} exp-status" data-val="open">Open</button>
-          <button class="btn ${exp.status==='in_progress'?'bp':''} exp-status" data-val="in_progress">In behandeling</button>
-          <button class="btn ${exp.status==='resolved'?'bp':''} exp-status" data-val="resolved">Opgelost</button>
-        </div>
-      </div>`:''}
-      <div style="background:var(--bg2);border-radius:var(--r1);padding:12px 14px;margin-bottom:1.2rem;font-size:13px">
-        ${exp.type==='orders'?`📦 <strong>${filterByPeriod(S.orders.filter(o=>exp.storeId==='all'||o.store_id==exp.storeId).filter(o=>exp.status==='all'||o.status===exp.status),'created_at',exp.period).length}</strong> orders gevonden`:''}
-        ${exp.type==='stock'?`📊 Voorraad van <strong>${exp.storeId==='all'?S.stores.length+' winkels':'1 winkel'}</strong>`:''}
-        ${exp.type==='complaints'?`📋 <strong>${filterByPeriod((S.complaints||[]).filter(c=>exp.storeId==='all'||c.store_id==exp.storeId).filter(c=>exp.status==='all'||c.status===exp.status),'created_at',exp.period).length}</strong> klachten gevonden`:''}
-      </div>
-      <button class="btn bp" id="do-export-page" style="width:100%;justify-content:center;height:40px;font-size:14px">⬇️ Downloaden als ${exp.format==='excel'?'Excel':'PDF'}</button>
-    </div>
-  </div>
-</div>`}
-
-function bAttendance(){
-  const todayStr=today();
-  const todayAttendance=(S.attendance||[]).filter(a=>a.login_date===todayStr);
-  const storeList=[...S.stores].sort((a,b)=>a.id-b.id).map(store=>{
-    const acc=S.accounts.find(a=>a.store_id===store.id&&a.role==='store');
-    const checkin=todayAttendance.find(a=>a.store_id===store.id);
-    return{store,acc,checkin};
-  });
-  const checkedIn=storeList.filter(x=>x.checkin).length;
-  const notIn=storeList.filter(x=>!x.checkin).length;
-  const pct=S.stores.length?Math.round(checkedIn/S.stores.length*100):0;
-  return`<div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:1rem">
-    <div class="met"><div class="met-l">Datum</div><div class="met-v" style="font-size:14px">${new Date().toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long'})}</div></div>
-    <div class="met"><div class="met-l" style="color:#3B6D11">${t().checkedIn}</div><div class="met-v" style="color:${GREEN}">${checkedIn}</div></div>
-    <div class="met"><div class="met-l" style="color:#A32D2D">${t().notSeen}</div><div class="met-v" style="color:${RED}">${notIn}</div></div>
-    <div class="met"><div class="met-l">Aanwezig %</div><div class="met-v" style="color:${pct>=75?GREEN:pct>=50?AMBER:RED}">${pct}%</div></div>
-  </div>
-  <div class="panel" style="padding:1rem;margin-bottom:1rem">
-    <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:12px">
-      <span style="font-weight:500">${t().attendanceToday}</span>
-      <span style="color:var(--t2)">${checkedIn} / ${S.stores.length} winkels</span>
-    </div>
-    <div style="background:var(--bg3);border-radius:20px;height:10px;overflow:hidden">
-      <div style="height:10px;width:${pct}%;background:${pct>=75?GREEN:pct>=50?AMBER:RED};border-radius:20px;transition:width .5s"></div>
-    </div>
-  </div>
-  <div class="panel">
-    <div class="ph"><span class="pht">🕐 ${t().attendanceToday}</span><button class="btn bsm" id="refresh-att-btn">↻ ${t().refresh}</button></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;padding:12px">
-      ${storeList.map(({store,acc,checkin})=>`
-        <div style="background:${checkin?'rgba(99,153,34,0.08)':'rgba(224,75,74,0.06)'};border:0.5px solid ${checkin?'rgba(99,153,34,0.3)':'rgba(224,75,74,0.2)'};border-radius:var(--r1);padding:10px 12px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-weight:500;font-size:13px">${store.name}</div>
-            <div style="font-size:11px;color:var(--t2)">${acc?acc.username:'—'}</div>
-            ${checkin?`<div style="font-size:11px;color:${GREEN};margin-top:2px">⏰ ${new Date(checkin.logged_in_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}</div>`:''}
-          </div>
-          ${checkin?`<span class="badge bok">✓ ${t().checkedIn}</span>`:`<span class="badge bout">✗ ${t().notSeen}</span>`}
-        </div>`).join('')}
-    </div>
-  </div>
-</div>`}
-
-function bComplaints(){
-  const complaints=[...S.complaints||[]].sort((a,b)=>b.id-a.id);
-  const openCount=complaints.filter(c=>c.status==='open').length;
-  return`<div class="panel">
-  <div class="ph">
-    <span class="pht">📋 Klachten (${complaints.length})</span>
-    <div style="display:flex;gap:6px;align-items:center">
-      <span style="font-size:11px;color:var(--t2)">${openCount} open</span>
-      <button class="btn bsm" onclick="showExportModal('allcomplaints',null,'month')">📤 Export</button>
-    </div>
-  </div>
-  <div class="tw"><table>
-    <colgroup><col style="width:88px"><col style="width:130px"><col style="width:90px"><col style="width:140px"><col style="width:170px"><col style="width:75px"><col style="width:180px"></colgroup>
-    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Acties</th></tr></thead>
-    <tbody>${complaints.length?complaints.map(c=>{
-      const st=S.stores.find(s=>s.id===c.store_id);
-      return`<tr>
-        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
-        <td style="font-weight:500">${st?st.name:'—'}</td>
-        <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
-        <td style="font-weight:500">${c.subject}</td>
-        <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?`<span class="badge bsent">${t().inProgress}</span>`:'<span class="badge bdone">Opgelost</span>'}</td>
-        <td><div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn bsm" onclick="bookmarkComplaint(${c.id})" style="color:${c.bookmarked?'#F5C842':'var(--t3)'}">🔖</button>
-          ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">${t().inProgress}</button>`:''}
-          ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
-          <button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length}</span>`:''}</button>
-          <button class="btn bsm" onclick="showExportModal('complaint',${c.id})">📤</button>
-          <button class="btn bd bsm dcomp" data-id="${c.id}">Del</button>
-        </div></td>
-      </tr>`;
-    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten</td></tr>`}
-    </tbody>
-  </table></div>
-</div>`}
-
-function bAccounts(){
-  const l=t();
-  return`<div class="panel">
-  <div class="ph"><span class="pht">${l.accounts} (${S.accounts.length})</span><button class="btn bp bsm" id="add-acc-btn">${l.addAccount}</button></div>
-  <div class="tw"><table>
-    <colgroup><col style="width:130px"><col style="width:185px"><col style="width:130px"><col style="width:70px"><col style="width:100px"></colgroup>
-    <thead><tr><th>${l.user}</th><th>${l.name}</th><th>${l.pass}</th><th>${l.role}</th><th></th></tr></thead>
-    <tbody>${S.accounts.map(a=>`<tr>
-      <td style="font-weight:500">${a.username}</td><td>${a.display_name}</td>
-      <td style="font-family:monospace;font-size:11px;color:var(--t2)">${a.auth_id?t().accountLinked:a.password}</td>
-      <td>${a.role==='admin'?`<span class="badge badm">${l.admin}</span>`:a.role==='manager'?`<span class="badge bmgr">${t().manager}</span>`:a.role==='driver'?`<span class="badge bdrv">${t().driver}</span>`:`<span class="badge bstr">${l.storeRole}</span>`}</td>
-      <td style="display:flex;gap:4px">${`<button class="btn bsm eacc" data-id="${a.id}">${l.edit}</button>`}${a.id!=='admin'?`<button class="btn bd bsm dacc" data-id="${a.id}">${l.remove}</button>`:''}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>
-</div>`}
-
-function buildDriverView(){
-  const l=t();
-  const sub=S.driverSubTab||'orders';
-  const todayStr=today();
-  // Only show orders with status 'sent' created today
-  const sentOrders=S.orders.filter(o=>o.status==='sent'&&o.created_at&&o.created_at.slice(0,10)===todayStr);
-  const unreadMsgs=(S.messages||[]).filter(m=>m.from_account!=='driver'&&!m.is_read).length;
-
-  return`<div>
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;flex-wrap:wrap;gap:10px">
-    <div style="display:flex;align-items:center;gap:12px">
-      <div style="width:42px;height:42px;background:#E8F4FD;border-radius:var(--r1);display:flex;align-items:center;justify-content:center;font-size:20px">🚚</div>
-      <div>
-        <div style="font-size:17px;font-weight:500">${S.session.display_name||S.session.username} <span class="badge bdrv" style="margin-left:5px;vertical-align:middle">${t().driver}</span></div>
-        <div style="font-size:12px;color:var(--t2)">${sentOrders.length} te bezorgen vandaag</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
-  </div>
-
-  <div class="tabs">
-    <button class="tab ${sub==='orders'?'on':''}" data-drv="orders">📦 ${l.orders}${sentOrders.length?` <span style="background:#3C3489;color:#fff;border-radius:10px;padding:0 5px;font-size:10px;margin-left:3px">${sentOrders.length}</span>`:''}</button>
-    <button class="tab ${sub==='stock'?'on':''}" data-drv="stock">📊 ${l.stockTab}</button>
-    <button class="tab ${sub==='stores'?'on':''}" data-drv="stores">🏪 ${l.stores}</button>
-    <button class="tab ${sub==='export'?'on':''}" data-drv="export">📤 Export</button>
-    <button class="tab ${sub==='complaints'?'on':''}" data-drv="complaints">📋 Klachten</button>
-  </div>
-
-  ${sub==='orders'?bDriverOrders(sentOrders):sub==='stock'?bDriverStock():sub==='stores'?bDriverStores():sub==='export'?bDriverExport():bDriverComplaints()}
-  ${S.modal?buildModal():''}
-</div>`}
 
 function bDriverOrders(sentOrders){
   const l=t();
