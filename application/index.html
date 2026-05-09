@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Rejoes Stock Manager</title>
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#D4537E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -464,7 +464,7 @@ const S={
   session:getSavedSession(),modal:null,search:'',productSearch:'',filterStore:'all',filterStatus:'all',
   adminSubTab:'stock',loginErr:'',loginUser:'',loginPass:'',
   lang:localStorage.getItem('appLang')||'nl',
-  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],stockHistory:[],weeklyRequests:[],company:null,
+  stores:[],products:[],stock:{},orders:[],orderItems:[],accounts:[],messages:[],complaints:[],orderHistory:[],complaintMsgs:[],attendance:[],stockHistory:[],weeklyRequests:[],orderableProducts:[],company:null,
   loading:true,
 };
 
@@ -495,7 +495,7 @@ async function loadAll(){
   const cid=S.company?.id;
   const companyFilter=cid?`&company_id=eq.${cid}`:'';
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory,weeklyRequests]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory,weeklyRequests,orderableProducts]=await Promise.all([
       api('stores?order=id'+companyFilter),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'+companyFilter),api('messages?order=created_at'),
@@ -505,6 +505,7 @@ async function loadAll(){
       api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
       api('stock_history?order=changed_at.desc&limit=200'),
       api('weekly_product_requests?order=quantity.desc'),
+      api('orderable_products?order=sort_order'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -516,6 +517,7 @@ async function loadAll(){
     S.attendance=attendance||[];
     S.stockHistory=stockHistory||[];
     S.weeklyRequests=weeklyRequests||[];
+    S.orderableProducts=orderableProducts||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -1611,24 +1613,66 @@ function buildModal(){
     const isStore=S.session.role==='store';
     const isEdit=m.type==='edit-order';
     const o=m.order||null;
-    const rows=m.rows||[{productId:S.products[0]?.id,qty:1}];
+    const orderItems=isEdit?(S.orderItems||[]).filter(i=>i.order_id===o.id):[];
+    const savedNote=m._savedNote!==undefined?m._savedNote:(isEdit?o.note||'':'');
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
       :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m.storeId)==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
-    const savedNote=m._savedNote!==undefined?m._savedNote:(isEdit?o.note||'':'');
+    
+    // Get orderable products - use orderableProducts list
+    const orderProds=S.orderableProducts||[];
+    // Current order quantities
+    const currentQtys=m.orderQtys||{};
+    
+    // Group by category
+    const categories=[...new Set(orderProds.map(p=>p.category))];
+    
     inner=`<h3>${isEdit?l.editOrder:l.addOrder}</h3>
     ${sf}
-    <div id="req-rows">${rows.map((r,i)=>`
-      <div class="req-row" style="display:flex;gap:6px;align-items:flex-end;margin-bottom:8px">
-        <div style="flex:1"><label style="display:block;font-size:11px;color:var(--t2);margin-bottom:3px">${l.product}</label>
-          <select class="rp-product">${S.products.map(p=>`<option value="${p.id}" ${r.productId==p.id?'selected':''}>${p.name}</option>`).join('')}</select>
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:12px;min-height:400px">
+      <!-- Product selector -->
+      <div style="overflow-y:auto;max-height:450px;padding-right:6px">
+        ${categories.map(cat=>`
+          <div style="margin-bottom:12px">
+            <div style="font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid var(--b3)">${cat}</div>
+            ${orderProds.filter(p=>p.category===cat).map(p=>{
+              const qty=currentQtys[p.id]||0;
+              return`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r1);margin-bottom:4px;background:${qty>0?'rgba(99,153,34,0.08)':'var(--bg2)'};border:0.5px solid ${qty>0?'rgba(99,153,34,0.3)':'var(--b3)'}">
+                <span style="flex:1;font-size:13px;font-weight:${qty>0?'600':'400'};color:${qty>0?GREEN:'var(--t1)'}">
+                  ${qty>0?'✓ ':''} ${p.name}
+                  ${p.name==='PRICE CARDS'?'<span style="font-size:10px;color:var(--t3);margin-left:4px">📋</span>':''}
+                </span>
+                <div style="display:flex;align-items:center;gap:4px">
+                  <button type="button" class="qty-minus" data-pid="${p.id}" style="width:24px;height:24px;border-radius:50%;border:0.5px solid var(--b2);background:var(--bg1);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">−</button>
+                  <span class="qty-display" data-pid="${p.id}" style="min-width:28px;text-align:center;font-weight:600;font-size:14px">${qty||0}</span>
+                  <button type="button" class="qty-plus" data-pid="${p.id}" style="width:24px;height:24px;border-radius:50%;background:${PINK};color:#fff;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">+</button>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`).join('')}
+      </div>
+      
+      <!-- Shopping list -->
+      <div style="background:var(--bg2);border-radius:var(--r1);padding:10px;overflow-y:auto;max-height:450px">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🛒 Boodschappenlijst</div>
+        ${orderProds.map(p=>{
+          const qty=currentQtys[p.id]||0;
+          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;margin-bottom:3px;${qty>0?'background:rgba(99,153,34,0.1)':'opacity:0.4'}">
+            <span style="font-size:12px;color:${qty>0?GREEN:RED}">${qty>0?'✓':'✗'} ${p.name}</span>
+            ${qty>0?`<span style="font-size:11px;font-weight:700;color:${GREEN}">×${qty}</span>`:''}
+          </div>`;
+        }).join('')}
+        <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--b3);font-size:12px;color:var(--t2)">
+          Totaal: <strong style="color:var(--t1)">${Object.values(currentQtys).reduce((a,b)=>a+b,0)} stuks</strong>
         </div>
-        <div style="width:80px"><label style="display:block;font-size:11px;color:var(--t2);margin-bottom:3px">${l.qty}</label>
-          <input type="number" class="rp-qty" value="${r.qty||1}" min="0" style="width:80px">
-        </div>
-        ${rows.length>1?`<button class="btn bd bsm rm-row" data-i="${i}" style="margin-bottom:1px">✕</button>`:''}
-      </div>`).join('')}</div>
-    <button class="btn bsm" id="add-row-btn" style="margin-bottom:10px">+ ${l.product}</button>
-    <div class="fr"><label>${l.note}</label><textarea id="m-note">${savedNote}</textarea></div>
+      </div>
+    </div>
+    
+    ${m.showPriceCards?`<div style="margin-top:10px;padding:10px;background:rgba(245,200,66,0.1);border:0.5px solid rgba(245,200,66,0.4);border-radius:var(--r1)">
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Price Cards specificatie</div>
+      <textarea id="price-cards-note" style="height:60px;font-size:12px" placeholder="Specificeer de price cards (bijv. €5, €10, €15...)...">${m.priceCardsNote||''}</textarea>
+    </div>`:''}
+    
+    <div class="fr" style="margin-top:10px"><label>${l.note}</label><textarea id="m-note">${savedNote}</textarea></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sorder">${isEdit?l.save:l.submit}</button></div>`;}
 
   else if(m.type==='chat'){
@@ -2321,16 +2365,22 @@ function bind(){
   }));
   document.querySelectorAll('.rlk').forEach(el=>el.addEventListener('click',()=>{
     const[sid,pid]=el.dataset.req.split('-').map(Number);
-    S.modal={type:'add-order',storeId:sid,rows:[{productId:pid,qty:1}]};render();
+    S.modal={type:'add-order',storeId:sid,orderQtys:{[pid]:1}};render();
   }));
   document.querySelectorAll('.eorder').forEach(el=>el.addEventListener('click',()=>{
     const o=S.orders.find(x=>x.id===parseInt(el.dataset.id));
     if(!o)return;
-    // Stores can only edit 'new' orders, admins can edit 'new' and 'sent'
-    const isAdmin=S.session.role==='admin';
+    const isAdmin=S.session.role==='admin'||S.session.role==='manager';
     if(!isAdmin&&o.status!=='new'){showToast('Alleen admin kan verzonden orders bewerken','err');return;}
     const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
-    S.modal={type:'edit-order',order:o,rows:items.length?items.map(i=>({productId:i.product_id,qty:i.quantity})):[{productId:S.products[0]?.id,qty:1}]};render();
+    // Build orderQtys from existing items using orderable product names
+    const orderQtys={};
+    items.forEach(item=>{
+      // Match by product_name stored in order_items or by id
+      const op=(S.orderableProducts||[]).find(p=>p.id===item.product_id||p.name===item.product_name);
+      if(op)orderQtys[op.id]=item.quantity;
+    });
+    S.modal={type:'edit-order',order:o,orderQtys};render();
   }));
   document.querySelectorAll('.hist-order').forEach(el=>el.addEventListener('click',()=>{
     S.modal={type:'order-history',orderId:parseInt(el.dataset.id)};render();
@@ -2379,8 +2429,8 @@ function bind(){
   }));
   document.querySelectorAll('.dacc').forEach(el=>el.addEventListener('click',()=>deleteAccount(el.dataset.id)));
   document.querySelectorAll('.eprod').forEach(el=>el.addEventListener('click',()=>{const p=S.products.find(x=>x.id===parseInt(el.dataset.id));if(p){S.modal={type:'edit-product',p};render();}}));
-  const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
-  const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,rows:[{productId:S.products[0]?.id,qty:1}]};render()});
+  const aob=g('add-order-btn');if(aob)aob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.stores[0]?.id,orderQtys:{}};render()});
+  const sob=g('store-order-btn');if(sob)sob.addEventListener('click',()=>{S.modal={type:'add-order',storeId:S.session.store_id,orderQtys:{}};render()});
   const acb=g('add-complaint-btn');if(acb)acb.addEventListener('click',()=>{S.modal={type:'add-complaint'};render()});
   document.querySelectorAll('.cchat').forEach(el=>el.addEventListener('click',async()=>{
     const cid=parseInt(el.dataset.id);
@@ -2442,17 +2492,21 @@ function bindModal(){
     const isEdit=S.modal.type==='edit-order';
     const sid=parseInt(g('m-store').value);
     const note=gv('m-note');
-    const rows=[...document.querySelectorAll('.req-row')].map((_,i)=>({
-      product_id:parseInt(document.querySelectorAll('.rp-product')[i]?.value),
-      quantity:parseInt(document.querySelectorAll('.rp-qty')[i]?.value)||1
-    })).filter(r=>r.product_id);
-    if(!rows.length)return;
+    const priceCardsNote=gv('price-cards-note');
+    // Build rows from orderQtys
+    const qtys=S.modal.orderQtys||{};
+    const rows=Object.entries(qtys)
+      .filter(([pid,qty])=>qty>0)
+      .map(([pid,qty])=>({product_id:parseInt(pid),quantity:qty,product_name:(S.orderableProducts||[]).find(p=>p.id===parseInt(pid))?.name||''}));
+    if(!rows.length){showToast('Voeg minimaal 1 product toe','err');return;}
+    const fullNote=note+(priceCardsNote?`
+Price Cards: ${priceCardsNote}`:'');
     const oid=isEdit?S.modal.order.id:null;
     S.modal=null;render();
     try{
       if(isEdit){
         // Update existing order
-        await api(`orders?id=eq.${oid}`,{method:'PATCH',body:JSON.stringify({store_id:sid,note})});
+        await api(`orders?id=eq.${oid}`,{method:'PATCH',body:JSON.stringify({store_id:sid,note:fullNote})});
         await api(`order_items?order_id=eq.${oid}`,{method:'DELETE',headers:{}});
         const newItems=[];
         for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:oid,...r})});newItems.push(item)}
@@ -2490,7 +2544,7 @@ function bindModal(){
           // Create new order
           const store=S.stores.find(s=>s.id===sid);
           const orderNotify={type:'order',storeName:store?store.name:'Winkel',orderNum:'????',items:rows.map(r=>{const p=S.products.find(x=>x.id===r.product_id);return{name:p?p.name:'?',qty:r.quantity}}),note};
-          const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note,status:'new',created_at:today()})},orderNotify);
+          const[newOrder]=await api('orders',{method:'POST',body:JSON.stringify({store_id:sid,note:fullNote,status:'new',created_at:today()})},orderNotify);
           if(newOrder)orderNotify.orderNum=String(newOrder.order_number||newOrder.id).padStart(4,'0');
           const newItems=[];
           for(const r of rows){const[item]=await api('order_items',{method:'POST',body:JSON.stringify({order_id:newOrder.id,...r})});newItems.push(item)}
@@ -2504,22 +2558,27 @@ function bindModal(){
     }catch(e){showToast('❌ '+t().errSave,'err')}
   });
 
-  const arb=g('add-row-btn');if(arb)arb.addEventListener('click',()=>{
-    // Save current row values before re-render
-    const currentRows=[...document.querySelectorAll('.req-row')].map((_,i)=>({
-      productId:parseInt(document.querySelectorAll('.rp-product')[i]?.value)||S.products[0]?.id,
-      qty:parseInt(document.querySelectorAll('.rp-qty')[i]?.value)||1
-    }));
-    // Save note and store
-    const currentNote=gv('m-note');
-    const currentStore=g('m-store')?g('m-store').value:null;
-    S.modal.rows=[...currentRows,{productId:S.products[0]?.id,qty:1}];
-    S.modal._savedNote=currentNote;
-    S.modal._savedStore=currentStore;
+  // New product qty +/- handlers
+  document.querySelectorAll('.qty-plus').forEach(el=>el.addEventListener('click',()=>{
+    const pid=parseInt(el.dataset.pid);
+    if(!S.modal.orderQtys)S.modal.orderQtys={};
+    S.modal.orderQtys[pid]=(S.modal.orderQtys[pid]||0)+1;
+    const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
+    if(prod&&prod.name==='PRICE CARDS')S.modal.showPriceCards=true;
+    S.modal._savedNote=gv('m-note');
+    S.modal._savedStore=g('m-store')?g('m-store').value:null;
     render();bindModal();
-  });
-  
-  // Export modal handlers
+  }));
+  document.querySelectorAll('.qty-minus').forEach(el=>el.addEventListener('click',()=>{
+    const pid=parseInt(el.dataset.pid);
+    if(!S.modal.orderQtys)S.modal.orderQtys={};
+    S.modal.orderQtys[pid]=Math.max(0,(S.modal.orderQtys[pid]||0)-1);
+    S.modal._savedNote=gv('m-note');
+    S.modal._savedStore=g('m-store')?g('m-store').value:null;
+    render();bindModal();
+  }));
+
+    // Export modal handlers
   const fmtExcel=g('fmt-excel');if(fmtExcel)fmtExcel.addEventListener('click',()=>{S.exportFormat='excel';render();bindModal()});
   const fmtPdf=g('fmt-pdf');if(fmtPdf)fmtPdf.addEventListener('click',()=>{S.exportFormat='pdf';render();bindModal()});
   document.querySelectorAll('.period-btn').forEach(el=>el.addEventListener('click',()=>{S.modal.exportPeriod=el.dataset.period;render();bindModal()}));
@@ -3019,7 +3078,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // Register Service Worker for PWA
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js')
+  navigator.serviceWorker.register('./sw.js')
     .then(reg=>{
       console.log('SW registered');
       S.swReg=reg;
