@@ -1666,15 +1666,19 @@ function buildModal(){
       <!-- Shopping list - only for admin/manager -->
       ${S.session.role!=='store'?`<div style="background:var(--bg2);border-radius:var(--r1);padding:10px;overflow-y:auto;max-height:60vh">
         <div style="font-size:11px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🛒 Boodschappenlijst</div>
-        ${orderProds.map(p=>{
+        <div class="shopping-list-items">
+        ${orderProds.filter(p=>(currentQtys[p.id]||0)>0).length===0?
+          `<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog niets geselecteerd</div>`
+          :orderProds.filter(p=>(currentQtys[p.id]||0)>0).map(p=>{
           const qty=currentQtys[p.id]||0;
-          return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;margin-bottom:3px;${qty>0?'background:rgba(99,153,34,0.1)':'opacity:0.4'}">
-            <span class="list-name" style="font-size:12px;color:${qty>0?GREEN:RED}"><span class="list-check">${qty>0?'✓':'✗'}</span> ${p.name}</span>
-            ${qty>0?`<span style="font-size:11px;font-weight:700;color:${GREEN}">×${qty}</span>`:''}
+          return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;margin-bottom:4px;background:rgba(99,153,34,0.1);border:0.5px solid rgba(99,153,34,0.2)">
+            <span class="list-name" style="font-size:13px;font-weight:600;color:${GREEN}">✓ ${p.name}</span>
+            <span style="font-size:12px;font-weight:700;color:${GREEN}">×${qty}</span>
           </div>`;
         }).join('')}
+        </div>
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--b3);font-size:12px;color:var(--t2)">
-          Totaal: <strong id="order-totaal" style="color:var(--t1)">${Object.values(currentQtys).reduce((a,b)=>a+b,0)} producten</strong>
+          Totaal: <strong id="order-totaal" style="color:var(--t1)">${Object.values(currentQtys).filter(v=>v>0).length} producten</strong>
         </div>
       </div>`:''}
     </div>
@@ -2648,21 +2652,46 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
   // New product qty +/- handlers - save scroll position to prevent jumping
   function updateQty(pid, delta){
     if(!S.modal.orderQtys)S.modal.orderQtys={};
-    S.modal.orderQtys[pid]=Math.max(0,(S.modal.orderQtys[pid]||0)+delta);
+    const newQty=Math.max(0,(S.modal.orderQtys[pid]||0)+delta);
+    S.modal.orderQtys[pid]=newQty;
     const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
-    if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]>0)S.modal.showPriceCards=true;
-    S.modal._savedNote=gv('m-note');
-    S.modal._savedStore=g('m-store')?g('m-store').value:null;
-    // Save scroll position of product list
-    const prodList=document.querySelector('.prod-scroll');
-    const scrollTop=prodList?prodList.scrollTop:0;
-    render();bindModal();
-    // Restore scroll position
-    const newProdList=document.querySelector('.prod-scroll');
-    if(newProdList)newProdList.scrollTop=scrollTop;
-    // Also prevent modal from scrolling to top
-    const mbox=document.querySelector('.mbox');
-    if(mbox)mbox.scrollTop=0;
+    
+    // Update product row DOM directly
+    const row=document.querySelector(`[onclick="toggleOrderProduct(${pid})"]`);
+    if(row){
+      row.style.background=newQty>0?'rgba(99,153,34,0.08)':'var(--bg2)';
+      row.style.borderColor=newQty>0?'rgba(99,153,34,0.3)':'var(--b3)';
+      const nameSpan=row.querySelector('span:first-child');
+      if(nameSpan){nameSpan.style.fontWeight=newQty>0?'600':'400';nameSpan.style.color=newQty>0?'#639922':'var(--t1)';}
+    }
+    // Update qty display
+    const qtyDisplay=row?row.querySelector('div[onclick] span:nth-child(2)'):null;
+    if(qtyDisplay)qtyDisplay.textContent=newQty;
+
+    // Update shopping list
+    const listContainer=document.querySelector('.shopping-list-items');
+    if(listContainer){
+      // Rebuild shopping list
+      const qtys=S.modal.orderQtys||{};
+      const requested=(S.orderableProducts||[]).filter(p=>qtys[p.id]>0);
+      listContainer.innerHTML=requested.length===0
+        ?'<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog niets geselecteerd</div>'
+        :requested.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;margin-bottom:4px;background:rgba(99,153,34,0.1);border:0.5px solid rgba(99,153,34,0.2)"><span style="font-size:13px;font-weight:600;color:#639922">✓ ${p.name}</span><span style="font-size:12px;font-weight:700;color:#639922">×${qtys[p.id]}</span></div>`).join('');
+    }
+
+    // Update totaal
+    const totaal=document.getElementById('order-totaal');
+    if(totaal){
+      const total=Object.values(S.modal.orderQtys).reduce((a,b)=>a+b,0);
+      totaal.textContent=total+' producten';
+    }
+
+    // Handle PRICE CARDS
+    if(prod&&prod.name==='PRICE CARDS'){
+      S.modal.showPriceCards=newQty>0;
+      const pcSection=document.getElementById('price-cards-section');
+      if(pcSection)pcSection.style.display=newQty>0?'block':'none';
+    }
   }
 
   document.querySelectorAll('.qty-plus').forEach(el=>el.addEventListener('click',e=>{
