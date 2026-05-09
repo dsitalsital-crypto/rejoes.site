@@ -306,6 +306,34 @@ body.rejoes-app .rejoes-title {
 </div>
 <script>
 const SB='https://rijn-stockmanagement.dsitalsital.workers.dev';
+
+// Global date/time formatting - always NL locale, European notation
+const NL='nl-NL';
+const TZ='Europe/Amsterdam';
+function fDate(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleDateString(NL,{day:'2-digit',month:'2-digit',year:'numeric',timeZone:TZ});
+}
+function fDateTime(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleString(NL,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ});
+}
+function fTime(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleTimeString(NL,{hour:'2-digit',minute:'2-digit',timeZone:TZ});
+}
+function fDateShort(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleDateString(NL,{day:'numeric',month:'short',timeZone:TZ});
+}
+function fDateLong(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleDateString(NL,{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:TZ});
+}
+function fDateWeekday(d){
+  if(!d)return'—';
+  return new Date(d).toLocaleDateString(NL,{weekday:'short',day:'numeric',month:'short',timeZone:TZ});
+}
 const KEY=''; // API key is now hidden in the Cloudflare Worker
 const PINK='#D4537E',AMBER='#EF9F27',RED='#E24B4A',GREEN='#639922';
 
@@ -471,7 +499,7 @@ const S={
 const t=()=>TR[S.lang];
 const g=id=>document.getElementById(id);
 const gv=id=>{const e=g(id);return e?e.value.trim():''};
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
 const barCol=(q,min)=>min===0?GREEN:q===0?RED:q<min?AMBER:GREEN;
 
 async function api(path,opts={},notify=null){
@@ -713,7 +741,7 @@ function buildAdmin(){
     <div style="display:flex;gap:8px;align-items:center">${langBar()}<button class="btn bsm" onclick="toggleDarkMode()">${S.darkMode?'☀️':'🌙'}</button><button class="btn bsm" id="refresh-btn">↻</button><button class="btn bsm" id="logout-btn">${l.out}</button></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.2rem">
-    <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${totalAll().toLocaleString()}</div></div>
+    <div class="met"><div class="met-l">${l.total}</div><div class="met-v">${totalAll().toLocaleString(NL,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ})}</div></div>
     <div class="met"><div class="met-l">${l.storesLbl}</div><div class="met-v">${S.stores.length}</div></div>
     <div class="met"><div class="met-l">${l.products}</div><div class="met-v">${S.products.length}</div></div>
     <div class="met"><div class="met-l" style="color:#854F0B">${l.lowStock}</div><div class="met-v" style="color:${AMBER}">${allLow()}</div></div>
@@ -801,7 +829,7 @@ function bDashboard(){
     </div>
     <div class="met" style="border-left:3px solid #D4537E">
       <div class="met-l">Totaal stuks</div>
-      <div class="met-v">${totalAll().toLocaleString()}</div>
+      <div class="met-v">${totalAll().toLocaleString(NL,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ})}</div>
     </div>
   </div>
 
@@ -990,7 +1018,7 @@ function orderCard(o, col, canEdit){
   const num=String(o.order_number||o.id).padStart(4,'0');
   const unread=(S.messages||[]).filter(m=>m.order_id===o.id&&m.from_account!=='admin'&&!m.is_read).length;
   const isBookmarked=o.bookmarked;
-  const delivDate=o.delivery_date?new Date(o.delivery_date).toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'}):'';
+  const delivDate=o.delivery_date?new Date(o.delivery_date).toLocaleDateString(NL,{weekday:'short',day:'numeric',month:'short',timeZone:TZ}):'';
 
   return`<div style="background:var(--bg2);border-radius:var(--r1);padding:10px;border:0.5px solid var(--b3)${isBookmarked?';border-left:3px solid #F5C842':''}">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
@@ -1058,7 +1086,7 @@ function bWeekPlanner(approvedOrders){
       <button class="btn bsm" onclick="S.plannerWeekOffset=(S.plannerWeekOffset||0)-1;render()" style="font-size:16px;padding:4px 10px">←</button>
       <div style="text-align:center">
         <div style="font-weight:600;font-size:14px">${weekLabel}</div>
-        <div style="font-size:11px;color:var(--t2)">${weekStart.getDate()}/${weekStart.getMonth()+1} – ${weekEnd.getDate()}/${weekEnd.getMonth()+1}/${weekEnd.getFullYear()}</div>
+        <div style="font-size:11px;color:var(--t2)">${fDate(weekStart)} – ${fDate(weekEnd)}</div>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         ${weekOffset!==0?`<button class="btn bsm" onclick="S.plannerWeekOffset=0;render()" style="font-size:11px">Vandaag</button>`:''}
@@ -1186,7 +1214,7 @@ function bDriverComplaints(){
     <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:80px"></colgroup>
     <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
     <tbody>${(S.complaints||[]).length?(S.complaints||[]).map(c=>`<tr>
-      <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+      <td style="color:var(--t2)">${fDate(c.created_at)}</td>
       <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
       <td style="font-weight:500">${c.subject}</td>
       <td style="font-size:11px;color:var(--t2)">${c.description}</td>
@@ -1257,7 +1285,7 @@ function buildStoreView(){
         const orderNum=String(o.order_number||o.id).padStart(4,'0');
         return`<tr>
           <td style="font-weight:500;color:#D4537E">#${orderNum}</td>
-          <td style="color:var(--t2)">${o.created_at}</td>
+          <td style="color:var(--t2)">${fDate(o.created_at)}</td>
           <td>${rbadge(o.status)}</td>
           <td style="font-size:11px">${itemsHtml}</td>
           <td><div style="display:flex;gap:3px;flex-wrap:wrap">
@@ -1279,7 +1307,7 @@ function buildStoreView(){
       <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
       <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
       <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
-        <td style="color:var(--t2)">${c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):''}</td>
+        <td style="color:var(--t2)">${fDate(c.created_at)}</td>
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
@@ -1386,7 +1414,7 @@ function buildModal(){
     <div id="chat-msgs" style="height:280px;overflow-y:auto;border:0.5px solid var(--b3);border-radius:var(--r1);padding:10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;background:var(--bg2)">
       ${msgs.length?msgs.map(msg=>{
         const fromMe=isAdmin?(msg.from_account==='admin'):(msg.from_account!=='admin');
-        const ts=msg.created_at?new Date(msg.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';
+        const ts=msg.created_at?fTime(msg.created_at):'';
         const senderName=msg.from_account==='admin'?l.admin:(st?.name||'Winkel');
         return`<div class="chat-bubble" style="align-items:${fromMe?'flex-end':'flex-start'}">
           <div class="chat-msg" style="background:${fromMe?'#D4537E':'var(--bg1)'};color:${fromMe?'#fff':'var(--t1)'};">${msg.message}</div>
@@ -1431,7 +1459,7 @@ function buildModal(){
     <div id="chat-msgs" style="height:260px;overflow-y:auto;border:0.5px solid var(--b3);border-radius:var(--r1);padding:10px;display:flex;flex-direction:column;gap:6px;margin-bottom:10px;background:var(--bg2)">
       ${msgs.length?msgs.map(msg=>{
         const fromMe=isAdmin?(msg.from_account==='admin'):(msg.from_account!=='admin');
-        const ts=msg.created_at?new Date(msg.created_at).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';
+        const ts=msg.created_at?fTime(msg.created_at):'';
         const senderName=msg.from_account==='admin'?'Admin':(st?.name||'Winkel');
         return`<div class="chat-bubble" style="align-items:${fromMe?'flex-end':'flex-start'}">
           <div class="chat-msg" style="background:${fromMe?'#D4537E':'var(--bg1)'};color:${fromMe?'#fff':'var(--t1)'};">${msg.message}</div>
@@ -1507,7 +1535,7 @@ function buildModal(){
         const diff=h.new_quantity-h.old_quantity;
         const diffStr=diff>0?`+${diff}`:String(diff);
         const diffCol=diff>0?'#639922':diff<0?'#E24B4A':'#6b6b6b';
-        const ts=h.changed_at?new Date(h.changed_at).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        const ts=h.changed_at?fDateTime(h.changed_at):'';
         return`<div style="padding:8px 12px;border-bottom:${i<hist.length-1?'0.5px solid var(--b3)':'none'};display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div>
             <div style="font-size:12px">${h.old_quantity} → <strong>${h.new_quantity}</strong> <span style="color:${diffCol};font-weight:500">(${diffStr})</span></div>
@@ -1537,7 +1565,7 @@ function buildModal(){
       ${hist.length?hist.map((h,i)=>`
         <div style="padding:8px 12px;border-bottom:${i<hist.length-1?'0.5px solid var(--b3)':'none'};display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:12px">${h.event}</span>
-          <span style="font-size:11px;color:var(--t3)">${h.created_at?new Date(h.created_at).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>
+          <span style="font-size:11px;color:var(--t3)">${h.created_at?new Date(h.created_at).toLocaleString(NL,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ}):''}</span>
         </div>`).join(''):'<div style="padding:1rem;text-align:center;color:var(--t3);font-size:12px">Nog geen geschiedenis</div>'}
     </div>
     <div class="fa"><button class="btn" id="mc">Sluiten</button></div>`;}
@@ -1702,7 +1730,7 @@ function exportToPDF(title, columns, rows, filename) {
   doc.setFont('helvetica', 'bold');
   doc.text(title, 14, 13);
   doc.setFontSize(9);
-  doc.text(new Date().toLocaleDateString('nl-NL', {weekday:'long',day:'numeric',month:'long',year:'numeric'}), doc.internal.pageSize.width - 14, 13, {align:'right'});
+  doc.text(new Date().toLocaleDateString(NL,{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:TZ}), doc.internal.pageSize.width - 14, 13, {align:'right'});
   
   // Company name
   if(S.company) {
@@ -1829,7 +1857,7 @@ function exportComplaints(period, complaintId) {
     const st = S.stores.find(x=>x.id===c.store_id);
     const type = c.type==='website'?'Website':c.type==='goods'?'Goederen':'Algemeen';
     const status = c.status==='open'?'Open':c.status==='in_progress'?t().inProgress:'Opgelost';
-    return [c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):'', st?st.name:'—', type, c.subject, c.description, status, c.admin_response||'—'];
+    return [fDate(c.created_at), st?st.name:'—', type, c.subject, c.description, status, c.admin_response||'—'];
   });
 
   const cols = ['Datum','Winkel','Type','Onderwerp','Omschrijving','Status','Reactie admin'];
@@ -2171,7 +2199,7 @@ function bind(){
         const st=S.stores.find(x=>x.id===c.store_id);
         const type=c.type==='website'?'Website':c.type==='goods'?'Goederen':'Algemeen';
         const stat=c.status==='open'?'Open':c.status==='in_progress'?t().inProgress:'Opgelost';
-        return[c.created_at?new Date(c.created_at).toLocaleDateString('nl-NL'):'',st?st.name:'—',type,c.subject,c.description,stat,c.admin_response||'—'];
+        return[fDate(c.created_at),st?st.name:'—',type,c.subject,c.description,stat,c.admin_response||'—'];
       });
       if(exp.format==='excel'){exportToExcel([{name:'Klachten',data:[cols,...rows]}],filename);}
       else{exportToPDF(`Klachten — ${storeName} — ${period}`,cols,rows,filename);}
@@ -2548,7 +2576,7 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
         if(chatEl){
           const isAdmin=S.session.role==='admin';
           const senderName=isAdmin?t().admin:(S.session.display_name||S.session.username);
-          const ts=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+          const ts=new Date().toLocaleTimeString(NL,{hour:'2-digit',minute:'2-digit',timeZone:TZ});
           const div=document.createElement('div');
           div.className='chat-bubble';div.style.alignItems='flex-end';
           div.innerHTML=`<div class="chat-msg" style="background:#D4537E;color:#fff">${msg}</div><div style="font-size:10px;color:var(--t3);margin-top:2px">${senderName} · ${ts}</div>`;
