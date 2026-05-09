@@ -2230,6 +2230,39 @@ async function logWeeklyRequest(orderItems){
   }
 }
 
+function rebuildShoppingList(){
+  const listContainer=document.querySelector('.shopping-list-items');
+  if(!listContainer)return;
+  
+  const qtys=S.modal.orderQtys||{};
+  const removedIds=S.modal.removedProductIds||[];
+  const orderProds=S.orderableProducts||[];
+  
+  // All products that are either requested OR added by admin (qty>0) OR on removed list
+  const reqIds=S.modal.requestedProductIds||[];
+  const addedByAdmin=Object.keys(qtys).filter(k=>qtys[k]>0&&!reqIds.includes(parseInt(k))).map(Number);
+  const allListIds=[...new Set([...reqIds,...addedByAdmin,...removedIds])];
+  const listProds=orderProds.filter(p=>allListIds.includes(p.id));
+  
+  if(listProds.length===0){
+    listContainer.innerHTML='<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog geen aanvragen</div>';
+    return;
+  }
+  
+  listContainer.innerHTML=listProds.map(p=>{
+    const isRemoved=removedIds.includes(p.id);
+    const qty=qtys[p.id]||0;
+    const isAdminAdded=!reqIds.includes(p.id)&&qty>0;
+    return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;margin-bottom:5px;background:${isRemoved?'rgba(226,75,74,0.08)':'rgba(99,153,34,0.08)'};border:0.5px solid ${isRemoved?'rgba(226,75,74,0.3)':'rgba(99,153,34,0.25)'}">
+      <span style="font-size:13px;font-weight:600;color:${isRemoved?'#E24B4A':'#639922'};${isRemoved?'text-decoration:line-through':''}">${isRemoved?'✗':'✓'} ${p.name}${isAdminAdded?' <span style="font-size:10px;opacity:0.6">(+admin)</span>':''}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        ${!isRemoved?`<span style="font-size:12px;font-weight:700;color:#639922">×${qty}</span>`:''}
+        <button type="button" onclick="toggleShoppingListItem(${p.id})" style="width:20px;height:20px;border-radius:50%;border:none;background:${isRemoved?'rgba(99,153,34,0.2)':'rgba(226,75,74,0.2)'};color:${isRemoved?'#639922':'#E24B4A'};cursor:pointer;font-size:12px;line-height:1">${isRemoved?'↩':'✕'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 function toggleShoppingListItem(pid){
   if(!S.modal.removedProductIds)S.modal.removedProductIds=[];
   const idx=S.modal.removedProductIds.indexOf(pid);
@@ -2267,6 +2300,8 @@ function toggleShoppingListItem(pid){
     const qtySpan=item.querySelectorAll('span')[1];
     if(qtySpan)qtySpan.style.display=isRemoved?'none':'inline';
   }
+  // Rebuild entire shopping list to keep it consistent
+  rebuildShoppingList();
   // Also update product row on left side
   const row=document.querySelector(`[onclick="toggleOrderProduct(${pid})"]`);
   if(row){
@@ -2708,9 +2743,31 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
   // New product qty +/- handlers - save scroll position to prevent jumping
   function updateQty(pid, delta){
     if(!S.modal.orderQtys)S.modal.orderQtys={};
+    if(!S.modal.requestedProductIds)S.modal.requestedProductIds=[];
+    if(!S.modal.removedProductIds)S.modal.removedProductIds=[];
     const newQty=Math.max(0,(S.modal.orderQtys[pid]||0)+delta);
     S.modal.orderQtys[pid]=newQty;
     const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
+    
+    // If admin adds a new product, add it to requestedProductIds
+    if(newQty>0&&!S.modal.requestedProductIds.includes(pid)){
+      S.modal.requestedProductIds.push(pid);
+      // Also remove from removedProductIds if it was there
+      S.modal.removedProductIds=S.modal.removedProductIds.filter(id=>id!==pid);
+    }
+    // If qty goes to 0 and it was added by admin (not originally requested by store),
+    // remove from requestedProductIds entirely
+    if(newQty===0&&S.modal.requestedProductIds.includes(pid)){
+      // Check if it was originally requested - if not, remove from list
+      // We track this by checking if it was in the original order items
+      const wasOriginal=(S.modal._originalRequestedIds||[]).includes(pid);
+      if(!wasOriginal){
+        S.modal.requestedProductIds=S.modal.requestedProductIds.filter(id=>id!==pid);
+      }else{
+        // Was originally requested - mark as removed (red)
+        if(!S.modal.removedProductIds.includes(pid))S.modal.removedProductIds.push(pid);
+      }
+    }
     
     // Update product row DOM directly
     const row=document.querySelector(`[onclick="toggleOrderProduct(${pid})"]`);
@@ -2724,16 +2781,8 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
     const qtyDisplay=row?row.querySelector('div[onclick] span:nth-child(2)'):null;
     if(qtyDisplay)qtyDisplay.textContent=newQty;
 
-    // Update shopping list
-    const listContainer=document.querySelector('.shopping-list-items');
-    if(listContainer){
-      // Rebuild shopping list
-      const qtys=S.modal.orderQtys||{};
-      const requested=(S.orderableProducts||[]).filter(p=>qtys[p.id]>0);
-      listContainer.innerHTML=requested.length===0
-        ?'<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog niets geselecteerd</div>'
-        :requested.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;margin-bottom:4px;background:rgba(99,153,34,0.1);border:0.5px solid rgba(99,153,34,0.2)"><span style="font-size:13px;font-weight:600;color:#639922">✓ ${p.name}</span><span style="font-size:12px;font-weight:700;color:#639922">×${qtys[p.id]}</span></div>`).join('');
-    }
+    // Update shopping list - rebuild properly with requestedProductIds
+    rebuildShoppingList();
 
     // Update totaal
     const totaal=document.getElementById('order-totaal');
@@ -2748,6 +2797,17 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
       const pcSection=document.getElementById('price-cards-section');
       if(pcSection)pcSection.style.display=newQty>0?'block':'none';
     }
+    // If removed from removed list when qty increases
+    if(newQty>0&&S.modal.removedProductIds){
+      const ri=S.modal.removedProductIds.indexOf(pid);
+      if(ri>-1)S.modal.removedProductIds.splice(ri,1);
+    }
+    // If qty goes to 0 and not in requestedProductIds, add to removed
+    if(newQty===0&&S.modal.requestedProductIds&&S.modal.requestedProductIds.includes(pid)){
+      if(!S.modal.removedProductIds)S.modal.removedProductIds=[];
+      if(!S.modal.removedProductIds.includes(pid))S.modal.removedProductIds.push(pid);
+    }
+    rebuildShoppingList();
   }
 
   document.querySelectorAll('.qty-plus').forEach(el=>el.addEventListener('click',e=>{
