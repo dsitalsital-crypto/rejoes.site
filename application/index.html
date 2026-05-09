@@ -1668,21 +1668,21 @@ function buildModal(){
         <div style="font-size:11px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🛒 Boodschappenlijst</div>
         ${orderProds.map(p=>{
           const qty=currentQtys[p.id]||0;
-          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;margin-bottom:3px;${qty>0?'background:rgba(99,153,34,0.1)':'opacity:0.4'}">
-            <span style="font-size:12px;color:${qty>0?GREEN:RED}">${qty>0?'✓':'✗'} ${p.name}</span>
+          return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;border-radius:5px;margin-bottom:3px;${qty>0?'background:rgba(99,153,34,0.1)':'opacity:0.4'}">
+            <span class="list-name" style="font-size:12px;color:${qty>0?GREEN:RED}"><span class="list-check">${qty>0?'✓':'✗'}</span> ${p.name}</span>
             ${qty>0?`<span style="font-size:11px;font-weight:700;color:${GREEN}">×${qty}</span>`:''}
           </div>`;
         }).join('')}
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--b3);font-size:12px;color:var(--t2)">
-          Totaal: <strong style="color:var(--t1)">${Object.values(currentQtys).reduce((a,b)=>a+b,0)} stuks</strong>
+          Totaal: <strong id="order-totaal" style="color:var(--t1)">${Object.values(currentQtys).reduce((a,b)=>a+b,0)} producten</strong>
         </div>
       </div>`:''}
     </div>
     
-    ${m.showPriceCards?`<div style="margin-top:10px;padding:10px;background:rgba(245,200,66,0.1);border:0.5px solid rgba(245,200,66,0.4);border-radius:var(--r1)">
+    <div id="price-cards-section" style="display:${m.showPriceCards?'block':'none'};margin-top:10px;padding:10px;background:rgba(245,200,66,0.1);border:0.5px solid rgba(245,200,66,0.4);border-radius:var(--r1)">
       <div style="font-size:12px;font-weight:600;margin-bottom:8px">📋 Price Cards specificatie</div>
       <textarea id="price-cards-note" style="height:60px;font-size:12px" placeholder="Specificeer de price cards (bijv. €5, €10, €15...)...">${m.priceCardsNote||''}</textarea>
-    </div>`:''}
+    </div>
     
     <div class="fr" style="margin-top:10px"><label>${l.note}</label><textarea id="m-note">${savedNote}</textarea></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sorder">${isEdit?l.save:l.submit}</button></div>`;}
@@ -2221,18 +2221,60 @@ async function logWeeklyRequest(orderItems){
 function toggleOrderProduct(pid){
   if(!S.modal.orderQtys)S.modal.orderQtys={};
   const current=S.modal.orderQtys[pid]||0;
-  S.modal.orderQtys[pid]=current>0?0:1;
+  const newVal=current>0?0:1;
+  S.modal.orderQtys[pid]=newVal;
+  
+  // Update DOM directly - no full render needed
+  const row=document.querySelector(`[onclick="toggleOrderProduct(${pid})"]`);
+  if(row){
+    const badge=row.querySelector('span:last-child');
+    if(badge){
+      badge.textContent=newVal>0?'✓ Aangevraagd':'+ Aanvragen';
+      badge.style.background=newVal>0?'rgba(99,153,34,0.15)':'rgba(0,0,0,0.05)';
+      badge.style.color=newVal>0?'#639922':'var(--t3)';
+    }
+    row.style.background=newVal>0?'rgba(99,153,34,0.08)':'var(--bg2)';
+    row.style.borderColor=newVal>0?'rgba(99,153,34,0.3)':'var(--b3)';
+    const nameSpan=row.querySelector('span:first-child');
+    if(nameSpan){
+      nameSpan.style.fontWeight=newVal>0?'600':'400';
+      nameSpan.style.color=newVal>0?'#639922':'var(--t1)';
+    }
+  }
+  
+  // Update shopping list item if visible
+  const listItems=document.querySelectorAll(`[data-list-pid="${pid}"]`);
+  listItems.forEach(item=>{
+    item.style.opacity=newVal>0?'1':'0.4';
+    item.style.background=newVal>0?'rgba(99,153,34,0.1)':'';
+    const txt=item.querySelector('.list-name');
+    if(txt)txt.style.color=newVal>0?'#639922':'#E24B4A';
+    const check=item.querySelector('.list-check');
+    if(check)check.textContent=newVal>0?'✓':'✗';
+  });
+
+  // Update totaal
+  const totaal=document.getElementById('order-totaal');
+  if(totaal){
+    const total=Object.values(S.modal.orderQtys).reduce((a,b)=>a+b,0);
+    totaal.textContent=total+' producten';
+  }
+
+  // Handle PRICE CARDS special case
   const prod=(S.orderableProducts||[]).find(p=>p.id===pid);
-  if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]>0)S.modal.showPriceCards=true;
-  if(prod&&prod.name==='PRICE CARDS'&&S.modal.orderQtys[pid]===0)S.modal.showPriceCards=false;
-  S.modal._savedNote=document.getElementById('m-note')?document.getElementById('m-note').value:'';
-  S.modal._savedStore=document.getElementById('m-store')?document.getElementById('m-store').value:null;
-  // Save scroll
-  const prodList=document.querySelector('.prod-scroll');
-  const scrollTop=prodList?prodList.scrollTop:0;
-  render();bindModal();
-  const newProdList=document.querySelector('.prod-scroll');
-  if(newProdList)newProdList.scrollTop=scrollTop;
+  if(prod&&prod.name==='PRICE CARDS'){
+    S.modal.showPriceCards=newVal>0;
+    const pcSection=document.getElementById('price-cards-section');
+    if(pcSection)pcSection.style.display=newVal>0?'block':'none';
+    if(!pcSection&&newVal>0){
+      // Full render needed for price cards section
+      const scrollY=window.scrollY;
+      S.modal._savedNote=document.getElementById('m-note')?.value||'';
+      S.modal._savedStore=document.getElementById('m-store')?.value||null;
+      render();bindModal();
+      requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+    }
+  }
 }
 
 async function lookupCompany(handle){
