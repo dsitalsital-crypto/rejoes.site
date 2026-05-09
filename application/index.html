@@ -1667,15 +1667,23 @@ function buildModal(){
       ${S.session.role!=='store'?`<div style="background:var(--bg2);border-radius:var(--r1);padding:10px;overflow-y:auto;max-height:60vh">
         <div style="font-size:11px;font-weight:700;color:var(--t2);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🛒 Boodschappenlijst</div>
         <div class="shopping-list-items">
-        ${orderProds.filter(p=>(currentQtys[p.id]||0)>0).length===0?
-          `<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog niets geselecteerd</div>`
-          :orderProds.filter(p=>(currentQtys[p.id]||0)>0).map(p=>{
-          const qty=currentQtys[p.id]||0;
-          return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-radius:6px;margin-bottom:4px;background:rgba(99,153,34,0.1);border:0.5px solid rgba(99,153,34,0.2)">
-            <span class="list-name" style="font-size:13px;font-weight:600;color:${GREEN}">✓ ${p.name}</span>
-            <span style="font-size:12px;font-weight:700;color:${GREEN}">×${qty}</span>
-          </div>`;
-        }).join('')}
+        ${(()=>{
+          const reqIds=m.requestedProductIds||Object.keys(currentQtys).filter(k=>currentQtys[k]>0).map(Number);
+          const removedIds=m.removedProductIds||[];
+          const reqProds=orderProds.filter(p=>reqIds.includes(p.id));
+          if(reqProds.length===0)return'<div style="text-align:center;color:var(--t3);font-size:12px;padding:1rem">Nog geen aanvragen</div>';
+          return reqProds.map(p=>{
+            const isRemoved=removedIds.includes(p.id);
+            const qty=currentQtys[p.id]||0;
+            return`<div data-list-pid="${p.id}" style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;margin-bottom:5px;background:${isRemoved?'rgba(226,75,74,0.08)':'rgba(99,153,34,0.08)'};border:0.5px solid ${isRemoved?'rgba(226,75,74,0.3)':'rgba(99,153,34,0.25)'}">
+              <span style="font-size:13px;font-weight:600;color:${isRemoved?RED:GREEN};${isRemoved?'text-decoration:line-through':''}">${isRemoved?'✗':'✓'} ${p.name}</span>
+              <div style="display:flex;align-items:center;gap:6px">
+                ${!isRemoved?`<span style="font-size:12px;font-weight:700;color:${GREEN}">×${qty}</span>`:''}
+                <button type="button" onclick="toggleShoppingListItem(${p.id})" style="width:20px;height:20px;border-radius:50%;border:none;background:${isRemoved?'rgba(99,153,34,0.2)':'rgba(226,75,74,0.2)'};color:${isRemoved?GREEN:RED};cursor:pointer;font-size:12px;line-height:1">${isRemoved?'↩':'✕'}</button>
+              </div>
+            </div>`;
+          }).join('');
+        })()}
         </div>
         <div style="margin-top:10px;padding-top:8px;border-top:0.5px solid var(--b3);font-size:12px;color:var(--t2)">
           Totaal: <strong id="order-totaal" style="color:var(--t1)">${Object.values(currentQtys).filter(v=>v>0).length} producten</strong>
@@ -2222,6 +2230,52 @@ async function logWeeklyRequest(orderItems){
   }
 }
 
+function toggleShoppingListItem(pid){
+  if(!S.modal.removedProductIds)S.modal.removedProductIds=[];
+  const idx=S.modal.removedProductIds.indexOf(pid);
+  if(idx>-1){
+    // Restore - remove from removed list
+    S.modal.removedProductIds.splice(idx,1);
+    // Restore qty to 1 if it was 0
+    if(!S.modal.orderQtys[pid]||S.modal.orderQtys[pid]===0){
+      S.modal.orderQtys[pid]=1;
+    }
+  }else{
+    // Remove - add to removed list and set qty to 0
+    S.modal.removedProductIds.push(pid);
+    S.modal.orderQtys[pid]=0;
+  }
+  // Update shopping list item DOM directly
+  const item=document.querySelector(`[data-list-pid="${pid}"]`);
+  const isRemoved=S.modal.removedProductIds.includes(pid);
+  if(item){
+    item.style.background=isRemoved?'rgba(226,75,74,0.08)':'rgba(99,153,34,0.08)';
+    item.style.borderColor=isRemoved?'rgba(226,75,74,0.3)':'rgba(99,153,34,0.25)';
+    const nameSpan=item.querySelector('span:first-child');
+    if(nameSpan){
+      nameSpan.style.color=isRemoved?'#E24B4A':'#639922';
+      nameSpan.style.textDecoration=isRemoved?'line-through':'none';
+      nameSpan.textContent=(isRemoved?'✗ ':'✓ ')+(S.orderableProducts||[]).find(p=>p.id===pid)?.name||'';
+    }
+    const btn=item.querySelector('button');
+    if(btn){
+      btn.style.background=isRemoved?'rgba(99,153,34,0.2)':'rgba(226,75,74,0.2)';
+      btn.style.color=isRemoved?'#639922':'#E24B4A';
+      btn.textContent=isRemoved?'↩':'✕';
+    }
+    // Show/hide qty
+    const qtySpan=item.querySelectorAll('span')[1];
+    if(qtySpan)qtySpan.style.display=isRemoved?'none':'inline';
+  }
+  // Also update product row on left side
+  const row=document.querySelector(`[onclick="toggleOrderProduct(${pid})"]`);
+  if(row){
+    const qty=S.modal.orderQtys[pid]||0;
+    row.style.background=qty>0?'rgba(99,153,34,0.08)':'var(--bg2)';
+    row.style.borderColor=qty>0?'rgba(99,153,34,0.3)':'var(--b3)';
+  }
+}
+
 function toggleOrderProduct(pid){
   if(!S.modal.orderQtys)S.modal.orderQtys={};
   const current=S.modal.orderQtys[pid]||0;
@@ -2465,7 +2519,9 @@ function bind(){
       }
       if(op)orderQtys[op.id]=item.quantity;
     });
-    S.modal={type:'edit-order',order:o,orderQtys};render();
+    // Store original requested product ids for shopping list
+    const requestedProductIds=Object.keys(orderQtys).map(Number);
+    S.modal={type:'edit-order',order:o,orderQtys,requestedProductIds,removedProductIds:[]};render();
   }));
   document.querySelectorAll('.hist-order').forEach(el=>el.addEventListener('click',()=>{
     S.modal={type:'order-history',orderId:parseInt(el.dataset.id)};render();
