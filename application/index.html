@@ -1434,15 +1434,17 @@ function bComplaints(){
 
 function bWeekPlanner(approvedOrders){
   const days=['Ma','Di','Wo','Do','Vr','Za','Zo'];
-  const today=new Date();
+  // Use Amsterdam timezone for all date calculations
+  const todayStr=today(); // YYYY-MM-DD in Amsterdam time
+  const todayNL=new Date(todayStr+'T00:00:00');
   
   // Week offset - 0 = current week, 1 = next week, etc.
   const weekOffset=S.plannerWeekOffset||0;
   
-  // Calculate start of current week (Monday)
-  const currentMonday=new Date(today);
-  const dayOfWeek=today.getDay()||7;
-  currentMonday.setDate(today.getDate()-dayOfWeek+1);
+  // Calculate start of current week (Monday) based on Amsterdam date
+  const currentMonday=new Date(todayNL);
+  const dayOfWeek=todayNL.getDay()||7;
+  currentMonday.setDate(todayNL.getDate()-dayOfWeek+1);
   currentMonday.setHours(0,0,0,0);
   
   // Apply offset
@@ -1452,6 +1454,7 @@ function bWeekPlanner(approvedOrders){
   const weekDates=days.map((_,i)=>{
     const d=new Date(weekMonday);
     d.setDate(weekMonday.getDate()+i);
+    d.setHours(12,0,0,0); // Noon to avoid DST issues
     return d;
   });
   
@@ -1503,8 +1506,8 @@ function bWeekPlanner(approvedOrders){
     ${weekDates.map((d,i)=>{
       const dateStr=d.toISOString().slice(0,10);
       const dayOrders=approvedOrders.filter(o=>o.delivery_date===dateStr);
-      const isToday=dateStr===today.toISOString().slice(0,10);
-      const isPast=d<new Date(today.toISOString().slice(0,10));
+      const isToday=dateStr===todayStr;
+      const isPast=dateStr<todayStr;
       return`<div style="margin-bottom:8px">
         <div style="font-size:11px;font-weight:600;color:${isToday?'#D4537E':isPast?'var(--t3)':'#0C5C8A'};margin-bottom:4px;padding:4px 8px;background:${isToday?'rgba(212,83,126,0.1)':isPast?'var(--bg2)':'rgba(12,92,138,0.08)'};border-radius:4px;display:flex;justify-content:space-between;align-items:center">
           <span>${days[i]} ${d.getDate()}/${d.getMonth()+1}${isToday?' (Vandaag)':''}</span>
