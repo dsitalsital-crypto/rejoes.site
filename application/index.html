@@ -2259,7 +2259,9 @@ function rebuildShoppingList(){
   
   const qtys=S.modal.orderQtys||{};
   const removedIds=S.modal.removedProductIds||[];
-  const orderProds=S.orderableProducts||[];
+  // Use all products for admin/manager, orderable products for stores
+  const isAdminOrder=S.modal.isAdminOrder||(S.session.role==='admin'||S.session.role==='manager');
+  const orderProds=isAdminOrder?[...S.products].sort((a,b)=>a.name.localeCompare(b.name)):(S.orderableProducts||[]);
   
   // All products that are either requested OR added by admin (qty>0) OR on removed list
   const reqIds=S.modal.requestedProductIds||[];
@@ -2566,7 +2568,6 @@ function bind(){
     const isAdminOrMgrEdit=S.session.role==='admin'||S.session.role==='manager';
     items.forEach(item=>{
       if(isAdminOrMgrEdit){
-        // Admin: use product_id directly as key
         if(item.product_id){
           orderQtys[item.product_id]=item.quantity;
         } else if(item.product_name){
@@ -2574,7 +2575,6 @@ function bind(){
           if(prod)orderQtys[prod.id]=item.quantity;
         }
       } else {
-        // Store: match via orderable_products
         let op=null;
         if(item.orderable_product_id){
           op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
@@ -2585,9 +2585,9 @@ function bind(){
         if(op)orderQtys[op.id]=item.quantity;
       }
     });
-    // Store original requested product ids for shopping list
+    // requestedProductIds = the IDs that are keys in orderQtys (matching the product list used)
     const requestedProductIds=Object.keys(orderQtys).map(Number);
-    S.modal={type:'edit-order',order:o,orderQtys,requestedProductIds,removedProductIds:[]};render();
+    S.modal={type:'edit-order',order:o,orderQtys,requestedProductIds,removedProductIds:[],isAdminOrder:isAdminOrMgrEdit};render();
   }));
   document.querySelectorAll('.hist-order').forEach(el=>el.addEventListener('click',()=>{
     S.modal={type:'order-history',orderId:parseInt(el.dataset.id)};render();
