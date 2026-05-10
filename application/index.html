@@ -1654,8 +1654,10 @@ function buildModal(){
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
       :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m.storeId)==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
     
-    // Get orderable products - use orderableProducts list
-    const orderProds=S.orderableProducts||[];
+    // Get orderable products - admins/managers see ALL products, stores see only orderable
+    const orderProds=isAdminOrManager
+      ? [...S.products].sort((a,b)=>a.name.localeCompare(b.name))
+      : (S.orderableProducts||[]);
     // Current order quantities
     const currentQtys=m.orderQtys||{};
     
@@ -2561,19 +2563,27 @@ function bind(){
     const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
     // Build orderQtys from existing items using orderable product names
     const orderQtys={};
+    const isAdminOrMgrEdit=S.session.role==='admin'||S.session.role==='manager';
     items.forEach(item=>{
-      // Match by orderable_product_id first, then by product_name
-      let op=null;
-      if(item.orderable_product_id){
-        op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
+      if(isAdminOrMgrEdit){
+        // Admin: use product_id directly as key
+        if(item.product_id){
+          orderQtys[item.product_id]=item.quantity;
+        } else if(item.product_name){
+          const prod=S.products.find(p=>p.name===item.product_name);
+          if(prod)orderQtys[prod.id]=item.quantity;
+        }
+      } else {
+        // Store: match via orderable_products
+        let op=null;
+        if(item.orderable_product_id){
+          op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
+        }
+        if(!op&&item.product_name){
+          op=(S.orderableProducts||[]).find(p=>p.name===item.product_name);
+        }
+        if(op)orderQtys[op.id]=item.quantity;
       }
-      if(!op&&item.product_name){
-        op=(S.orderableProducts||[]).find(p=>p.name===item.product_name);
-      }
-      if(!op&&item.product_id){
-        op=(S.orderableProducts||[]).find(p=>p.id===item.product_id);
-      }
-      if(op)orderQtys[op.id]=item.quantity;
     });
     // Store original requested product ids for shopping list
     const requestedProductIds=Object.keys(orderQtys).map(Number);
@@ -2693,14 +2703,31 @@ function bindModal(){
     // Build rows from orderQtys
     const qtys=S.modal.orderQtys||{};
     const isStoreRole=S.session.role==='store';
+    const isAdminOrMgr=S.session.role==='admin'||S.session.role==='manager';
     const rows=Object.entries(qtys)
       .filter(([pid,qty])=>qty>0)
-      .map(([pid,qty])=>({
-        orderable_product_id:parseInt(pid),
-        product_id:null,
-        quantity:isStoreRole?1:qty,
-        product_name:(S.orderableProducts||[]).find(p=>p.id===parseInt(pid))?.name||''
-      }));
+      .map(([pid,qty])=>{
+        const pid_int=parseInt(pid);
+        if(isAdminOrMgr){
+          // Admin uses S.products - pid is product.id directly
+          const prod=S.products.find(p=>p.id===pid_int);
+          return{
+            product_id:pid_int,
+            orderable_product_id:null,
+            quantity:qty,
+            product_name:prod?.name||''
+          };
+        }else{
+          // Store uses orderableProducts - pid is orderable_product.id
+          const oprod=(S.orderableProducts||[]).find(p=>p.id===pid_int);
+          return{
+            orderable_product_id:pid_int,
+            product_id:null,
+            quantity:1,
+            product_name:oprod?.name||''
+          };
+        }
+      });
     if(!rows.length){showToast('Voeg minimaal 1 product toe','err');return;}
     const fullNote=note+(priceCardsNote?`
 Price Cards: ${priceCardsNote}`:'');
