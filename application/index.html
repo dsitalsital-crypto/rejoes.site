@@ -3124,8 +3124,24 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
   });
   const sac=g('sac');if(sac)sac.addEventListener('click',async()=>{
     const u=gv('m-user'),p=gv('m-pass'),n=gv('m-name'),role=gv('m-role'),sl=gv('m-sl');
-    if(!u||!p)return;S.modal=null;render();
-    try{const[na]=await api('accounts',{method:'POST',body:JSON.stringify({id:'acc_'+Date.now(),username:u,password:p,display_name:n||u,role,store_id:sl?parseInt(sl):null})});S.accounts.push(na);showToast('✓ '+t().saved);render()}catch(e){showToast('❌ '+t().errSave,'err')}
+    if(!u||!p){showToast('Vul gebruikersnaam en wachtwoord in','err');return;}
+    S.modal=null;render();
+    try{
+      const payload={
+        username:u,
+        password:p,
+        display_name:n||u,
+        role,
+        store_id:sl?parseInt(sl):null,
+        company_id:S.company?.id||1
+      };
+      const[na]=await api('accounts',{method:'POST',body:JSON.stringify(payload)});
+      if(na)S.accounts.push(na);
+      showToast('✓ '+t().saved);render();
+    }catch(e){
+      showToast('❌ '+t().errSave,'err');
+      console.error('Account add error:',e);
+    }
   });
 }
 
