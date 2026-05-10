@@ -3175,13 +3175,7 @@ function checkDeliveryNotification(){
   // Find approved/sent orders for this store
   const orders=S.orders||[];
   
-  console.log('[Delivery] storeId:',storeId,'today:',todayStr,'tomorrow:',tomorrowStr);
-  console.log('[Delivery] orders met delivery_date:',orders.filter(o=>o.delivery_date).map(o=>({id:o.id,store_id:o.store_id,status:o.status,delivery_date:o.delivery_date})));
-  console.log('[Delivery] dismissedToday:',dismissedToday,'dismissedTomorrow:',dismissedTomorrow);
-  
-  // Show debug toast on mobile
-  const dbgOrders=orders.filter(o=>o.delivery_date&&o.store_id===storeId);
-  showToast(`📦 Check: ${dbgOrders.length} orders, vandaag:${todayStr}`);
+
 
   // Check if there's a delivery TODAY
   const deliveryToday=orders.find(o=>
@@ -3197,8 +3191,6 @@ function checkDeliveryNotification(){
     o.delivery_date===tomorrowStr
   );
   
-  console.log('[Delivery] deliveryToday:',deliveryToday,'deliveryTomorrow:',deliveryTomorrow);
-
   if(deliveryToday&&!dismissedToday){
     showDeliveryNotif('today',todayStr,storeId);
   } else if(deliveryTomorrow&&!dismissedTomorrow){
