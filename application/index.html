@@ -3576,23 +3576,29 @@ const VAPID_KEY="BEYL6tKy51ekU6_3NQjCcuGDtGStZ9wggwxnhGcZWTcUKjTdJfrxfmc9CCijd4E
 
 async function initFirebase(){
   try{
-    if(typeof firebase==='undefined')return;
+    showToast('Firebase init...');
+    if(typeof firebase==='undefined'){showToast('Firebase niet geladen!','err');return;}
     if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
     const messaging=firebase.messaging();
     const permission=await Notification.requestPermission();
+    showToast('Notificatie toestemming: '+permission);
     if(permission!=='granted')return;
     const token=await messaging.getToken({vapidKey:VAPID_KEY});
     if(token){
       S.fcmToken=token;
+      showToast('FCM token opgeslagen!');
       if(S.session?.id){
-        await api(`accounts?id=eq.${S.session.id}`,{method:'PATCH',body:JSON.stringify({fcm_token:token})}).catch(()=>{});
+        const res=await api(`accounts?id=eq.${S.session.id}`,{method:'PATCH',body:JSON.stringify({fcm_token:token})}).catch(e=>{showToast('Token opslaan mislukt: '+e.message,'err');});
+        showToast('Token opgeslagen in DB');
       }
+    }else{
+      showToast('Geen FCM token ontvangen','err');
     }
     messaging.onMessage((payload)=>{
       const{title,body}=payload.notification||{};
       showToast((title||'Rejoes')+(body?' — '+body:''));
     });
-  }catch(err){console.log('Firebase error:',err);}
+  }catch(err){showToast('Firebase error: '+err.message,'err');console.log('Firebase error:',err);}
 }
 
 // Register Firebase Service Worker
