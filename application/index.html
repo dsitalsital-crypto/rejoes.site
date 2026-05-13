@@ -2036,7 +2036,7 @@ async function doLogin(){
       if(acc.role==='admin'){
         setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
         requestPushPermission();
-        setTimeout(initFirebase, 2000);},2000);
+        setTimeout(initFirebase, 1500);},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -2061,7 +2061,7 @@ async function doLogin(){
       if(acc.role==='admin'){
         setTimeout(()=>{lastOrderCount=S.orders.length;lastMsgCount=(S.messages||[]).filter(m=>m.from_account!=='admin'&&!m.is_read).length;startPolling();requestNotificationPermission();
         requestPushPermission();
-        setTimeout(initFirebase, 2000);},2000);
+        setTimeout(initFirebase, 1500);},2000);
       }
     }else{
       S.loginErr=l.loginErr;S.loginUser=u;S.loginPass=p;render();
@@ -3645,11 +3645,13 @@ if(_savedSession&&_savedCompany){
 }else{
   S.loading=false;
   S.screen='portal';
+  // Init Firebase for all logged in users
+  if(S.session){
+    setTimeout(initFirebase, 2000);
+  }
   // Check delivery notification for store users
   if(S.session&&S.session.role==='store'){
     setTimeout(()=>checkDeliveryNotification(),1500);
-    // Init Firebase for existing sessions
-    setTimeout(initFirebase, 3000);
   }
   // Auto-load company from URL if present
   if(window._autoHandle){
@@ -3667,7 +3669,7 @@ setTimeout(()=>{
     startPolling();
     requestNotificationPermission();
         requestPushPermission();
-        setTimeout(initFirebase, 2000);
+        setTimeout(initFirebase, 1500);
   }
 },3000);
 </script>
