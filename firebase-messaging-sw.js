@@ -1,4 +1,5 @@
 // Firebase Messaging Service Worker
+// Must be at the root to receive push notifications
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
@@ -13,27 +14,29 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log('Background message received:', payload);
-  const { title, body, icon } = payload.notification || {};
-  self.registration.showNotification(title || 'Rejoes Stock', {
-    body: body || 'Nieuwe melding',
-    icon: icon || '/icon-192.png',
+  console.log('Background message:', payload);
+  const title = payload.notification?.title || 'Rejoes Stock';
+  const body = payload.notification?.body || 'Nieuwe melding';
+  self.registration.showNotification(title, {
+    body,
+    icon: '/icon-192.png',
     badge: '/icon-192.png',
     vibrate: [200, 100, 200],
-    data: payload.data || {},
-    tag: 'rejoes-notification'
+    tag: 'rejoes-push',
+    requireInteraction: false,
+    data: { url: '/application/' }
   });
 });
 
-// Handle notification click
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(
-    clients.matchAll({ type: 'window' }).then(clientList => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
-        if ('focus' in client) return client.focus();
+        if (client.url.includes('/application/') && 'focus' in client) {
+          return client.focus();
+        }
       }
       if (clients.openWindow) return clients.openWindow('/application/');
     })
