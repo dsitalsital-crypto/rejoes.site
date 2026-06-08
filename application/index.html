@@ -606,7 +606,7 @@ async function loadAll(){
       api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
       api('stock_history?order=changed_at.desc&limit=200'),
       api('weekly_product_requests?order=quantity.desc'),
-      api('orderable_products?order=sort_order&select=id,name,category,unit,supplier,min_stock,default_qty,artikel_id,active,sort_order'),
+      api('orderable_products?order=sort_order&select=id,name,category,unit,supplier,min_stock,default_qty,artikel_id,active,for_type,sort_order'),
       api('suppliers?order=name'),
     ]);
     S.stores=stores||[];S.products=products||[];
@@ -1224,8 +1224,8 @@ function bProducts(){
       </div>
     </div>
     <div class="tw"><table>
-      <colgroup><col style="width:90px"><col style="width:160px"><col style="width:110px"><col style="width:80px"><col style="width:60px"><col style="width:60px"><col style="width:130px"><col style="width:60px"><col style="width:80px"></colgroup>
-      <thead><tr><th>Artikel ID</th><th>Naam</th><th>Categorie</th><th>Eenheid</th><th>Std. qty</th><th>Min.</th><th>Leverancier</th><th>Actief</th><th></th></tr></thead>
+      <colgroup><col style="width:80px"><col style="width:150px"><col style="width:100px"><col style="width:70px"><col style="width:50px"><col style="width:50px"><col style="width:120px"><col style="width:50px"><col style="width:110px"><col style="width:70px"></colgroup>
+      <thead><tr><th>Artikel ID</th><th>Naam</th><th>Categorie</th><th>Eenheid</th><th>Std. qty</th><th>Min.</th><th>Leverancier</th><th>Actief</th><th>Beschikbaar voor</th><th></th></tr></thead>
       <tbody>${filtered.length?filtered.map(p=>`<tr style="${p.active===false?'opacity:0.5':''}">
         <td style="font-size:11px;color:var(--t2)">${p.artikel_id||'—'}</td>
         <td style="font-weight:500">${p.name}</td>
@@ -1235,6 +1235,7 @@ function bProducts(){
         <td>${p.min_stock||0}</td>
         <td style="font-size:11px;color:var(--t2)">${p.supplier||'—'}</td>
         <td><span class="badge ${p.active!==false?'bok':'bout'}">${p.active!==false?'Ja':'Nee'}</span></td>
+        <td style="font-size:11px">${p.for_type==='magazijn'?'🏭 Magazijn':p.for_type==='both'?'🏪🏭 Beide':'🏪 Winkel'}</td>
         <td style="display:flex;gap:3px">
           <button class="btn bsm eop" data-id="${p.id}">✏️</button>
           <button class="btn bd bsm dop" data-id="${p.id}">🗑</button>
@@ -1830,6 +1831,11 @@ function buildModal(){
       <div class="fr"><label>Minimumvoorraad</label><input type="number" id="op-min" value="${p.min_stock||0}" min="0"></div>
       <div class="fr" style="grid-column:1/-1"><label>Leverancier</label><select id="op-sup"><option value="">— Geen —</option>${suppliers}</select></div>
       <div class="fr"><label>Actief</label><select id="op-active"><option value="true" ${p.active!==false?'selected':''}>Ja</option><option value="false" ${p.active===false?'selected':''}>Nee</option></select></div>
+      <div class="fr"><label>Beschikbaar voor</label><select id="op-fortype">
+        <option value="winkel" ${(!p.for_type||p.for_type==='winkel')?'selected':''}>🏪 Alleen winkels</option>
+        <option value="magazijn" ${p.for_type==='magazijn'?'selected':''}>🏭 Alleen magazijnen</option>
+        <option value="both" ${p.for_type==='both'?'selected':''}>🏪🏭 Winkels en magazijnen</option>
+      </select></div>
     </div>
     <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="sop">Opslaan</button></div>`;}
 
@@ -1862,14 +1868,16 @@ function buildModal(){
     const selectedStore=S.stores.find(s=>s.id===selectedStoreId);
     const isMagazijn=selectedStore?.name?.includes('Magazijn');
 
-    // Get orderable products based on selected store type
-    // Magazijn → all products including pallets
-    // Winkel → only active orderable products (no pallet/magazijn-only)
+    // Product filter based on for_type field:
+    // winkel → show for winkels
+    // magazijn → show for magazijnen  
+    // both → show for both
+    const allOp=S.orderableProducts||[];
     const orderProds=isMagazijn
-      ? [...S.products].sort((a,b)=>a.name.localeCompare(b.name))
-      : isAdminOrManager
-        ? (S.orderableProducts||[]).filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name))
-        : (S.orderableProducts||[]).filter(p=>p.active!==false);
+      ? allOp.filter(p=>p.for_type==='magazijn'||p.for_type==='both')
+             .sort((a,b)=>a.name.localeCompare(b.name))
+      : allOp.filter(p=>p.for_type==='winkel'||p.for_type==='both'||!p.for_type)
+             .sort((a,b)=>a.name.localeCompare(b.name));
     // Current order quantities
     const currentQtys=m.orderQtys||{};
     
@@ -2952,7 +2960,8 @@ function bindModal(){
       default_qty:parseInt(document.getElementById('op-dqty')?.value)||1,
       min_stock:parseInt(document.getElementById('op-min')?.value)||0,
       supplier:document.getElementById('op-sup')?.value||null,
-      active:document.getElementById('op-active')?.value==='true'
+      active:document.getElementById('op-active')?.value==='true',
+      for_type:document.getElementById('op-fortype')?.value||'winkel'
     };
     try{
       if(isEdit){
