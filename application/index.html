@@ -1204,7 +1204,11 @@ function bProducts(){
 
   if(tab==='orderable'){
     const ops=[...(S.orderableProducts||[])].sort((a,b)=>a.name.localeCompare(b.name));
-    const filtered=ops.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||(p.category||'').toLowerCase().includes(ps.toLowerCase())||(p.supplier||'').toLowerCase().includes(ps.toLowerCase()));
+    const showInactive=S.showInactiveOp||false;
+    const filtered=ops.filter(p=>{
+      if(!showInactive&&p.active===false)return false;
+      return !ps||p.name.toLowerCase().includes(ps.toLowerCase())||(p.category||'').toLowerCase().includes(ps.toLowerCase())||(p.supplier||'').toLowerCase().includes(ps.toLowerCase());
+    });
     return`<div>
     <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
       <button class="btn ${tab==='products'?'bp':''}" onclick="S.productTab='products';render()">Alle producten</button>
@@ -1215,6 +1219,7 @@ function bProducts(){
     <div class="ph"><span class="pht">Bestelbare producten (${filtered.length})</span>
       <div style="display:flex;gap:7px;align-items:center">
         <input type="text" id="psrch" placeholder="Zoeken..." value="${ps}" style="width:160px;height:30px;font-size:12px">
+        <button class="btn bsm" onclick="S.showInactiveOp=!S.showInactiveOp;render()">${S.showInactiveOp?'Verberg inactief':'Toon inactief'}</button>
         <button class="btn bp bsm" id="add-op-btn">+ Toevoegen</button>
       </div>
     </div>
@@ -1850,10 +1855,10 @@ function buildModal(){
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
       :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m.storeId)==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
     
-    // Get orderable products - admins/managers see ALL products, stores see only orderable
+    // Get orderable products - admins/managers see ALL products, stores see only ACTIVE orderable
     const orderProds=isAdminOrManager
       ? [...S.products].sort((a,b)=>a.name.localeCompare(b.name))
-      : (S.orderableProducts||[]);
+      : (S.orderableProducts||[]).filter(p=>p.active!==false);
     // Current order quantities
     const currentQtys=m.orderQtys||{};
     
