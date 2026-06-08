@@ -596,7 +596,7 @@ async function loadAll(){
   const cid=S.company?.id;
   const companyFilter=cid?`&company_id=eq.${cid}`:'';
   try{
-    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory,weeklyRequests,orderableProducts]=await Promise.all([
+    const[stores,products,stockRows,orders,orderItems,accounts,messages,complaints,orderHistory,complaintMsgs,attendance,stockHistory,weeklyRequests,orderableProducts,suppliers]=await Promise.all([
       api('stores?order=id'+companyFilter),api('products?order=name'),api('stock?select=*'),
       api('orders?order=id.desc'),api('order_items?select=*'),
       api('accounts?order=username'+companyFilter),api('messages?order=created_at'),
@@ -606,7 +606,8 @@ async function loadAll(){
       api('attendance?order=logged_in_at.desc&login_date=eq.'+today()),
       api('stock_history?order=changed_at.desc&limit=200'),
       api('weekly_product_requests?order=quantity.desc'),
-      api('orderable_products?order=sort_order'),
+      api('orderable_products?order=sort_order&select=id,name,category,unit,supplier,min_stock,default_qty,artikel_id,active,sort_order'),
+      api('suppliers?order=name'),
     ]);
     S.stores=stores||[];S.products=products||[];
     S.stock={};(stockRows||[]).forEach(r=>{S.stock[r.store_id+'-'+r.product_id]=r.quantity});
@@ -619,6 +620,7 @@ async function loadAll(){
     S.stockHistory=stockHistory||[];
     S.weeklyRequests=weeklyRequests||[];
     S.orderableProducts=orderableProducts||[];
+    S.suppliers=suppliers||[];
   }catch(e){showToast('❌ '+e.message,'err')}
   S.loading=false;render();
 }
@@ -1193,14 +1195,64 @@ function bStoreDetail(store,l){
 
 function bProducts(){
   const l=t();
-  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
+  const tab=S.productTab||'products';
   const ps=S.productSearch||'';
-  const filtered=sorted.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||p.sku.toLowerCase().includes(ps.toLowerCase())||p.category.toLowerCase().includes(ps.toLowerCase()));
-  return`<div class="panel">
-  <div class="ph"><span class="pht">${l.products}</span>
+
+  if(tab==='suppliers'){
+    return bSuppliers();
+  }
+
+  if(tab==='orderable'){
+    const ops=[...(S.orderableProducts||[])].sort((a,b)=>a.name.localeCompare(b.name));
+    const filtered=ops.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||(p.category||'').toLowerCase().includes(ps.toLowerCase())||(p.supplier||'').toLowerCase().includes(ps.toLowerCase()));
+    return`<div>
+    <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+      <button class="btn ${tab==='products'?'bp':''}" onclick="S.productTab='products';render()">Alle producten</button>
+      <button class="btn ${tab==='orderable'?'bp':''}" onclick="S.productTab='orderable';render()">Bestelbare producten</button>
+      <button class="btn ${tab==='suppliers'?'bp':''}" onclick="S.productTab='suppliers';render()">Leveranciers</button>
+    </div>
+    <div class="panel">
+    <div class="ph"><span class="pht">Bestelbare producten (${filtered.length})</span>
+      <div style="display:flex;gap:7px;align-items:center">
+        <input type="text" id="psrch" placeholder="Zoeken..." value="${ps}" style="width:160px;height:30px;font-size:12px">
+        <button class="btn bp bsm" id="add-op-btn">+ Toevoegen</button>
+      </div>
+    </div>
+    <div class="tw"><table>
+      <colgroup><col style="width:90px"><col style="width:160px"><col style="width:110px"><col style="width:80px"><col style="width:60px"><col style="width:60px"><col style="width:130px"><col style="width:60px"><col style="width:80px"></colgroup>
+      <thead><tr><th>Artikel ID</th><th>Naam</th><th>Categorie</th><th>Eenheid</th><th>Std. qty</th><th>Min.</th><th>Leverancier</th><th>Actief</th><th></th></tr></thead>
+      <tbody>${filtered.length?filtered.map(p=>`<tr style="${p.active===false?'opacity:0.5':''}">
+        <td style="font-size:11px;color:var(--t2)">${p.artikel_id||'—'}</td>
+        <td style="font-weight:500">${p.name}</td>
+        <td><span class="badge" style="background:var(--bg3);color:var(--t2);font-size:10px">${p.category||'—'}</span></td>
+        <td style="color:var(--t2)">${p.unit||'—'}</td>
+        <td>${p.default_qty||1}</td>
+        <td>${p.min_stock||0}</td>
+        <td style="font-size:11px;color:var(--t2)">${p.supplier||'—'}</td>
+        <td><span class="badge ${p.active!==false?'bok':'bout'}">${p.active!==false?'Ja':'Nee'}</span></td>
+        <td style="display:flex;gap:3px">
+          <button class="btn bsm eop" data-id="${p.id}">✏️</button>
+          <button class="btn bd bsm dop" data-id="${p.id}">🗑</button>
+        </td>
+      </tr>`).join(''):`<tr><td colspan="9" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen producten</td></tr>`}
+      </tbody>
+    </table></div>
+  </div></div>`;
+  }
+
+  // Default: all products
+  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name));
+  const filtered=sorted.filter(p=>!ps||p.name.toLowerCase().includes(ps.toLowerCase())||p.sku.toLowerCase().includes(ps.toLowerCase())||(p.category||'').toLowerCase().includes(ps.toLowerCase()));
+  return`<div>
+  <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <button class="btn ${tab==='products'?'bp':''}" onclick="S.productTab='products';render()">Alle producten</button>
+    <button class="btn ${tab==='orderable'?'bp':''}" onclick="S.productTab='orderable';render()">Bestelbare producten</button>
+    <button class="btn ${tab==='suppliers'?'bp':''}" onclick="S.productTab='suppliers';render()">Leveranciers</button>
+  </div>
+  <div class="panel">
+  <div class="ph"><span class="pht">${l.products} (${filtered.length})</span>
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
       <input type="text" id="psrch" placeholder="${l.search}" value="${ps}" style="width:140px;height:30px;font-size:12px">
-      <button class="btn bsm" id="bulk-import-btn">📥 Import Excel</button>
       <button class="btn bp bsm" id="add-prod-btn">${l.addProduct}</button>
     </div>
   </div>
@@ -1215,7 +1267,7 @@ function bProducts(){
     </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
     </tbody>
   </table></div>
-</div>`}
+</div></div>`}
 
 function bAccounts(){
   const l=t();
@@ -1232,6 +1284,39 @@ function bAccounts(){
     </tr>`).join('')}</tbody>
   </table></div>
 </div>`}
+
+function bSuppliers(){
+  const suppliers=S.suppliers||[];
+  const ps=S.productSearch||'';
+  const tab=S.productTab||'products';
+  const filtered=suppliers.filter(s=>!ps||s.name.toLowerCase().includes(ps.toLowerCase())||(s.category||'').toLowerCase().includes(ps.toLowerCase()));
+  return`<div>
+  <div style="display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+    <button class="btn" onclick="S.productTab='products';render()">Alle producten</button>
+    <button class="btn" onclick="S.productTab='orderable';render()">Bestelbare producten</button>
+    <button class="btn bp" onclick="S.productTab='suppliers';render()">Leveranciers</button>
+  </div>
+  <div class="panel">
+  <div class="ph"><span class="pht">Leveranciers (${filtered.length})</span>
+    <div style="display:flex;gap:7px;align-items:center">
+      <input type="text" id="psrch" placeholder="Zoeken..." value="${ps}" style="width:160px;height:30px;font-size:12px">
+      <button class="btn bp bsm" id="add-sup-btn">+ Leverancier</button>
+    </div>
+  </div>
+  <div class="tw"><table>
+    <colgroup><col style="width:160px"><col style="width:130px"><col style="width:130px"><col style="width:130px"><col style="width:150px"><col style="width:100px"></colgroup>
+    <thead><tr><th>Naam</th><th>Categorie</th><th>Contactpersoon</th><th>E-mail</th><th>Bestelmethode</th><th>Opmerking</th></tr></thead>
+    <tbody>${filtered.length?filtered.map(s=>`<tr>
+      <td style="font-weight:600;color:#D4537E">${s.name}</td>
+      <td><span class="badge" style="background:var(--bg3);color:var(--t2);font-size:10px">${s.category||'—'}</span></td>
+      <td style="color:var(--t2)">${s.contact_person||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">${s.email||'—'}</td>
+      <td style="font-size:11px">${s.order_method||'—'}</td>
+      <td style="font-size:11px;color:var(--t2)">${s.notes||'—'}</td>
+    </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen leveranciers</td></tr>`}
+    </tbody>
+  </table></div>
+</div></div>`}
 
 function bWeeklyRequests(){
   const weekStart=getWeekStart();
@@ -1723,6 +1808,37 @@ function buildModal(){
     ${S.session.role!=='admin'?`<div style="background:#FAEEDA;border:0.5px solid #FAC775;border-radius:var(--r1);padding:8px 10px;font-size:11px;color:#854F0B;margin-bottom:10px">⚠️ Pas de voorraad alleen aan als je stock hebt verbruikt of gecorrigeerd.</div>`:''}
     <div class="fr"><label>${l.qty}</label><input type="number" id="m-qty" value="${m.cur}" min="0"></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="ss">${l.save}</button></div>`;}
+
+  else if(m.type==='edit-op'||m.type==='add-op'){
+    const isEdit=m.type==='edit-op';
+    const p=m.op||{};
+    const suppliers=(S.suppliers||[]).map(s=>`<option value="${s.name}" ${p.supplier===s.name?'selected':''}>${s.name}</option>`).join('');
+    const cats=['Kleding','Schoenen','Accessoires','Tassen','Verpakkingsmateriaal','Beveiliging','Winkelvloer','Schoonmaakmiddelen','Kassa','Administratief','Winkel','Interieur'].map(c=>`<option value="${c}" ${p.category===c?'selected':''}>${c}</option>`).join('');
+    const units=['Stuks','Doos','Rollen','Pallets','Zakken'].map(u=>`<option value="${u}" ${p.unit===u?'selected':''}>${u}</option>`).join('');
+    inner=`<h3>${isEdit?'Product bewerken':'Product toevoegen'}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr"><label>Artikel ID</label><input type="text" id="op-artid" value="${p.artikel_id||''}"></div>
+      <div class="fr"><label>Naam *</label><input type="text" id="op-name" value="${p.name||''}"></div>
+      <div class="fr"><label>Categorie</label><select id="op-cat">${cats}</select></div>
+      <div class="fr"><label>Eenheid</label><select id="op-unit">${units}</select></div>
+      <div class="fr"><label>Std. bestelhoeveelheid</label><input type="number" id="op-dqty" value="${p.default_qty||1}" min="1"></div>
+      <div class="fr"><label>Minimumvoorraad</label><input type="number" id="op-min" value="${p.min_stock||0}" min="0"></div>
+      <div class="fr" style="grid-column:1/-1"><label>Leverancier</label><select id="op-sup"><option value="">— Geen —</option>${suppliers}</select></div>
+      <div class="fr"><label>Actief</label><select id="op-active"><option value="true" ${p.active!==false?'selected':''}>Ja</option><option value="false" ${p.active===false?'selected':''}>Nee</option></select></div>
+    </div>
+    <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="sop">Opslaan</button></div>`;}
+
+  else if(m.type==='add-supplier'){
+    inner=`<h3>Leverancier toevoegen</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fr"><label>Naam *</label><input type="text" id="sup-name" value=""></div>
+      <div class="fr"><label>Categorie</label><input type="text" id="sup-cat" value=""></div>
+      <div class="fr"><label>Contactpersoon</label><input type="text" id="sup-contact" value=""></div>
+      <div class="fr"><label>E-mail</label><input type="text" id="sup-email" value=""></div>
+      <div class="fr"><label>Bestelmethode</label><input type="text" id="sup-method" value=""></div>
+      <div class="fr"><label>Opmerking</label><input type="text" id="sup-notes" value=""></div>
+    </div>
+    <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="ssup">Opslaan</button></div>`;}
 
   else if(m.type==='add-order'||m.type==='edit-order'){
     const isStore=S.session.role==='store';
@@ -2614,6 +2730,7 @@ function bind(){
     }catch(e){}
   });
   document.querySelectorAll('[data-sub]').forEach(el=>el.addEventListener('click',()=>{S.adminSubTab=el.dataset.sub;render()}));
+  const ps=g('psrch');if(ps)ps.addEventListener('input',e=>{S.productSearch=e.target.value;render()});
   document.querySelectorAll('[data-drv]').forEach(el=>el.addEventListener('click',()=>{S.driverSubTab=el.dataset.drv;render()}));
   const sr=g('srch');if(sr)sr.addEventListener('input',e=>{S.search=e.target.value;renderKeepFocus('srch')});
   const psr=g('psrch');if(psr)psr.addEventListener('input',e=>{S.productSearch=e.target.value;renderKeepFocus('psrch')});
@@ -2639,6 +2756,29 @@ function bind(){
     const[sid,pid]=el.dataset.req.split('-').map(Number);
     S.modal={type:'add-order',storeId:sid,orderQtys:{[pid]:1}};render();
   }));
+  // Edit orderable product
+  document.querySelectorAll('.eop').forEach(el=>el.addEventListener('click',()=>{
+    const p=(S.orderableProducts||[]).find(x=>x.id===parseInt(el.dataset.id));
+    if(!p)return;
+    S.modal={type:'edit-op',op:p};render();
+  }));
+  // Delete orderable product
+  document.querySelectorAll('.dop').forEach(el=>el.addEventListener('click',async()=>{
+    if(!confirm('Weet je zeker?'))return;
+    const id=parseInt(el.dataset.id);
+    await api(`orderable_products?id=eq.${id}`,{method:'DELETE',headers:{}});
+    S.orderableProducts=(S.orderableProducts||[]).filter(x=>x.id!==id);
+    showToast('✓ Verwijderd');render();
+  }));
+  // Add orderable product button
+  const aopb=g('add-op-btn');if(aopb)aopb.addEventListener('click',()=>{
+    S.modal={type:'add-op'};render();
+  });
+  // Add supplier button
+  const asupb=g('add-sup-btn');if(asupb)asupb.addEventListener('click',()=>{
+    S.modal={type:'add-supplier'};render();
+  });
+
   document.querySelectorAll('.eorder').forEach(el=>el.addEventListener('click',()=>{
     const o=S.orders.find(x=>x.id===parseInt(el.dataset.id));
     if(!o)return;
@@ -2782,6 +2922,53 @@ function bindModal(){
       if(sh)(S.stockHistory=S.stockHistory||[]).unshift(sh);
       showToast('✓ '+t().saved);render();
     }catch(e){showToast('❌ '+t().errSave,'err')}
+  });
+
+  // Save orderable product
+  const sop=g('sop');if(sop)sop.addEventListener('click',async()=>{
+    const isEdit=S.modal.type==='edit-op';
+    const name=document.getElementById('op-name')?.value;
+    if(!name){showToast('Naam is verplicht','err');return;}
+    const payload={
+      name, artikel_id:document.getElementById('op-artid')?.value||null,
+      category:document.getElementById('op-cat')?.value,
+      unit:document.getElementById('op-unit')?.value,
+      default_qty:parseInt(document.getElementById('op-dqty')?.value)||1,
+      min_stock:parseInt(document.getElementById('op-min')?.value)||0,
+      supplier:document.getElementById('op-sup')?.value||null,
+      active:document.getElementById('op-active')?.value==='true'
+    };
+    try{
+      if(isEdit){
+        await api(`orderable_products?id=eq.${S.modal.op.id}`,{method:'PATCH',body:JSON.stringify(payload)});
+        const idx=(S.orderableProducts||[]).findIndex(x=>x.id===S.modal.op.id);
+        if(idx>-1)S.orderableProducts[idx]={...S.orderableProducts[idx],...payload};
+      }else{
+        const[np]=await api('orderable_products',{method:'POST',body:JSON.stringify({...payload,sort_order:((S.orderableProducts||[]).length+1)*10})});
+        if(np)(S.orderableProducts=S.orderableProducts||[]).push(np);
+      }
+      S.modal=null;showToast('✓ Opgeslagen');render();
+    }catch(e){showToast('❌ Fout bij opslaan','err');}
+  });
+
+  // Save supplier
+  const ssup=g('ssup');if(ssup)ssup.addEventListener('click',async()=>{
+    const name=document.getElementById('sup-name')?.value;
+    if(!name){showToast('Naam is verplicht','err');return;}
+    const payload={
+      name,
+      category:document.getElementById('sup-cat')?.value||null,
+      contact_person:document.getElementById('sup-contact')?.value||null,
+      email:document.getElementById('sup-email')?.value||null,
+      order_method:document.getElementById('sup-method')?.value||null,
+      notes:document.getElementById('sup-notes')?.value||null,
+      company_id:S.company?.id||1
+    };
+    try{
+      const[ns]=await api('suppliers',{method:'POST',body:JSON.stringify(payload)});
+      if(ns)(S.suppliers=S.suppliers||[]).push(ns);
+      S.modal=null;showToast('✓ Leverancier toegevoegd');render();
+    }catch(e){showToast('❌ Fout bij opslaan','err');}
   });
 
   const sorder=g('sorder');if(sorder)sorder.addEventListener('click',async()=>{
@@ -3450,7 +3637,7 @@ function requestNotificationPermission(){
 // e.g. /application/rejoes -> auto-login to rejoes
 (function(){
   const path = window.location.pathname;
-  const match = path.match(/\/application\/([a-z0-9-]+)\/?$/i);
+  const match = path.match(/(?:\/application\/|\/|^)([a-z0-9-]+)\/?$/i);
   if(match && match[1]){
     const handle = match[1].toLowerCase();
     // Auto-lookup company on load
@@ -3595,19 +3782,15 @@ async function initFirebase(){
   }catch(err){console.log('Firebase error:',err);}
 }
 
-// Register Firebase Service Worker from root scope
+// Register Firebase Service Worker
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/firebase-messaging-sw.js', {scope: '/'})
+  navigator.serviceWorker.register('/firebase-messaging-sw.js')
     .then(reg=>{
       S.swReg=reg;
       console.log('Firebase SW registered, scope:', reg.scope);
     })
     .catch(err=>{
-      console.log('Firebase SW error:', err);
-      // Fallback to app-scoped sw
-      navigator.serviceWorker.register('./firebase-messaging-sw.js')
-        .then(reg=>{S.swReg=reg;})
-        .catch(e=>console.log('SW fallback error:',e));
+      console.log('Firebase SW error:', err.message);
     });
 }
 
