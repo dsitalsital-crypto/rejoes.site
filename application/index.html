@@ -1148,8 +1148,13 @@ function bStores(){
 
 function bStoreDetail(store,l){
   const storeSearch=S.storeDetailSearch||'';
-  const maxQ=Math.max(1,...S.products.map(p=>qty(store.id,p.id)));
-  const sorted=[...S.products].sort((a,b)=>a.name.localeCompare(b.name))
+  const isMagazijnStore2=store?.name?.includes('Magazijn');
+  // Filter products based on store type
+  const storeProds=isMagazijnStore2
+    ? S.products
+    : S.products.filter(p=>!p.for_type||p.for_type==='winkel'||p.for_type==='both');
+  const maxQ=Math.max(1,...storeProds.map(p=>qty(store.id,p.id)));
+  const sorted=[...storeProds].sort((a,b)=>a.name.localeCompare(b.name))
     .filter(p=>!storeSearch||p.name.toLowerCase().includes(storeSearch.toLowerCase())||p.sku.toLowerCase().includes(storeSearch.toLowerCase())||p.category.toLowerCase().includes(storeSearch.toLowerCase()));
   return`<div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
@@ -1657,6 +1662,10 @@ function bDriverOrders(sentOrders){
 
 function bDriverStock(){
   const maxQ=Math.max(1,...S.products.flatMap(p=>S.stores.map(s=>qty(s.id,p.id))));
+  // For stock overview: show products appropriate per store type
+  const getStoreProds=(storeObj)=>storeObj?.name?.includes('Magazijn')
+    ? S.products
+    : S.products.filter(p=>!p.for_type||p.for_type==='winkel'||p.for_type==='both');
   return`<div class="panel">
   <div class="ph"><span class="pht">📊 Voorraad overzicht</span></div>
   <div class="tw"><table>
