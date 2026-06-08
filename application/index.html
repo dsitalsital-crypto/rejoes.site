@@ -3309,6 +3309,7 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
       name:gv('m-name'),
       sku:gv('m-sku'),
       category:cat,
+      unit:unit||'Stuks',
       size:parseFloat(gv('m-size'))||0,
       min_stock:isNaN(minVal)?0:minVal,
       supplier:supplier||null,
