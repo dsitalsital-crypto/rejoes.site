@@ -1139,7 +1139,7 @@ function bStores(){
     <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
     <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.total}</th><th>${l.products}</th><th></th></tr></thead>
     <tbody>${[...S.stores].sort((a,b)=>(a.sort_order||100)-(b.sort_order||100)||(a.id-b.id)).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
-      <td style="font-weight:500;color:#D4537E">${s.name.includes('Magazijn')?'🏭 ':'🏪 '}${s.name}</td><td style="color:var(--t2)">${s.city}</td>
+      <td style="font-weight:500;color:#D4537E">${s.name.includes('Magazijn')?'🏭 ':s.is_outlet?'🏷️ ':'🏪 '}${s.name}${s.is_outlet?' <span class="badge" style="background:#F5C842;color:#7A5C00;font-size:9px">Outlet</span>':''}</td><td style="color:var(--t2)">${s.city}</td>
       <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
       <td>${S.session.role==='admin'?`<button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
@@ -1741,20 +1741,36 @@ function buildStoreView(){
     <div class="tw"><table>
       <colgroup><col style="width:175px"><col style="width:95px"><col style="width:115px"><col style="width:60px"><col style="width:80px"><col style="width:90px"></colgroup>
       <thead><tr><th>${l.product}</th><th>${l.cat}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th><th></th></tr></thead>
-      <tbody>${S.products.map(p=>{
-        const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
-        return`<tr>
-          <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku}·${p.size}kg</div></td>
-          <td>${p.category}</td>
-          <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
-          <td style="color:var(--t2)">${p.min_stock}</td>
-          <td>${sbadge(q,p.min_stock)}</td>
-          <td style="display:flex;gap:4px">
-            <button class="btn bsm elk2" data-edit="${acc.store_id}-${p.id}">✏️</button>
-            <button class="btn bsm rlk" data-req="${acc.store_id}-${p.id}">${l.reqBtn}</button>
-          </td>
-        </tr>`;
-      }).join('')}</tbody>
+      <tbody>${(()=>{
+        const isOutlet=S.stores.find(s=>s.id===acc.store_id)?.is_outlet===true;
+        // Return products: OWN (for normal stores) + REJECT (for all stores)
+        const returnNames=isOutlet?['REJECT']:['OWN','REJECT'];
+        // Regular products (exclude return products)
+        const regularProds=S.products.filter(p=>!returnNames.includes(p.name));
+        const returnProds=S.products.filter(p=>returnNames.includes(p.name));
+
+        const renderRow=(p)=>{
+          const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
+          return`<tr>
+            <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku}·${p.size}kg</div></td>
+            <td>${p.category}</td>
+            <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
+            <td style="color:var(--t2)">${p.min_stock}</td>
+            <td>${sbadge(q,p.min_stock)}</td>
+            <td style="display:flex;gap:4px">
+              <button class="btn bsm elk2" data-edit="${acc.store_id}-${p.id}">✏️</button>
+              <button class="btn bsm rlk" data-req="${acc.store_id}-${p.id}">${l.reqBtn}</button>
+            </td>
+          </tr>`;
+        };
+
+        return regularProds.map(renderRow).join('')
+          + (returnProds.length?`
+            <tr><td colspan="6" style="padding:8px 0 4px;font-weight:700;font-size:11px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;border-top:2px solid var(--b2)">
+              ${isOutlet?'Returns':'Returns (OWN & Reject)'}
+            </td></tr>`:'')
+          + returnProds.map(renderRow).join('');
+      })()}</tbody>
     </table></div>
   </div>
   <div class="panel">
@@ -1875,11 +1891,16 @@ function buildModal(){
     // magazijn → show for magazijnen  
     // both → show for both
     const allOp=S.orderableProducts||[];
+    const isOutlet=selectedStore?.is_outlet===true;
     const orderProds=isMagazijn
       ? allOp.filter(p=>p.for_type==='magazijn'||p.for_type==='both')
              .sort((a,b)=>a.name.localeCompare(b.name))
-      : allOp.filter(p=>p.for_type==='winkel'||p.for_type==='both'||!p.for_type)
-             .sort((a,b)=>a.name.localeCompare(b.name));
+      : allOp.filter(p=>{
+          if(p.for_type==='magazijn')return false;
+          // OWN only for outlet stores
+          if(p.name==='OWN'&&!isOutlet)return false;
+          return true;
+        }).sort((a,b)=>a.name.localeCompare(b.name));
     // Current order quantities
     const currentQtys=m.orderQtys||{};
     
