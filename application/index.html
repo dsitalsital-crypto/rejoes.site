@@ -3305,25 +3305,35 @@ const existingOrder=S.orders.find(o=>o.store_id===mergeStoreId&&o.status==='new'
     const supplier=document.getElementById('m-supplier')?.value||null;
     const for_type=document.getElementById('m-fortype')?.value||'winkel';
     const artikel_id=gv('m-artid')||null;
-    const updated={name:gv('m-name'),sku:gv('m-sku'),category:cat,size:gv('m-size'),min_stock:isNaN(minVal)?0:minVal,supplier,for_type,artikel_id};
-    S.modal=null;render();
+    const updated={
+      name:gv('m-name'),
+      sku:gv('m-sku'),
+      category:cat,
+      size:parseFloat(gv('m-size'))||0,
+      min_stock:isNaN(minVal)?0:minVal,
+      supplier:supplier||null,
+      for_type:for_type||'winkel',
+      artikel_id:artikel_id||null
+    };
+    const origName=S.modal.p.name;
     try{
       await api(`products?id=eq.${pid}`,{method:'PATCH',body:JSON.stringify(updated)});
       const p=S.products.find(x=>x.id===pid);if(p)Object.assign(p,updated);
-      const op=(S.orderableProducts||[]).find(x=>x.name===updated.name);
+      const op=(S.orderableProducts||[]).find(x=>x.name===origName||x.name===updated.name);
       if(op){
-        // If for_type changes to 'magazijn', set active=false so stores can't order it
-        // If for_type changes to 'winkel' or 'both', set active=true
-        const newActive=for_type==='magazijn'?false:true;
+        const opActive=for_type==='magazijn'?false:true;
         await api(`orderable_products?id=eq.${op.id}`,{method:'PATCH',body:JSON.stringify({
-          category:cat,unit,supplier,for_type,artikel_id,
-          min_stock:isNaN(minVal)?0:minVal,
-          active:newActive
+          category:cat,unit,supplier:supplier||null,for_type,
+          artikel_id:artikel_id||null,min_stock:isNaN(minVal)?0:minVal,active:opActive
         })}).catch(()=>{});
-        Object.assign(op,{category:cat,unit,supplier,for_type,artikel_id,active:newActive});
+        Object.assign(op,{category:cat,unit,supplier,for_type,artikel_id,active:opActive});
       }
+      S.modal=null;
       showToast('✓ '+t().saved);render();
-    }catch(e){showToast('❌ '+t().errSave,'err');}
+    }catch(e){
+      console.error('Save error:',e);
+      showToast('❌ '+e.message,'err');
+    }
   });
 
   const ssto=g('ssto');if(ssto)ssto.addEventListener('click',async()=>{
@@ -3648,7 +3658,7 @@ function startPolling(){
       // Only re-render the badge counts (non-disruptive)
       updateBadges();
     }catch(e){}
-  },30000);
+  },5000);
 }
 
 function stopPolling(){
