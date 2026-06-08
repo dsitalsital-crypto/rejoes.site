@@ -1138,8 +1138,8 @@ function bStores(){
   <div class="tw"><table>
     <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
     <thead><tr><th>${l.name}</th><th>${l.city}</th><th>${l.total}</th><th>${l.products}</th><th></th></tr></thead>
-    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
-      <td style="font-weight:500;color:#D4537E">${s.name}</td><td style="color:var(--t2)">${s.city}</td>
+    <tbody>${[...S.stores].sort((a,b)=>(a.sort_order||100)-(b.sort_order||100)||(a.id-b.id)).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
+      <td style="font-weight:500;color:#D4537E">${s.name.includes('Magazijn')?'🏭 ':'🏪 '}${s.name}</td><td style="color:var(--t2)">${s.city}</td>
       <td>${storeTotal(s.id)}</td><td>${storeItems(s.id)}</td>
       <td>${S.session.role==='admin'?`<button class="btn bd bsm dstore" data-id="${s.id}">${l.remove}</button>`:''}</td>
     </tr>`).join('')}</tbody>
@@ -1154,7 +1154,7 @@ function bStoreDetail(store,l){
   return`<div>
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
     <button class="btn bsm" id="back-stores-btn">← ${t().back}</button>
-    <span style="font-size:16px;font-weight:500">${store.name}</span>
+    <span style="font-size:16px;font-weight:500">${store.name.includes('Magazijn')?'🏭':'🏪'} ${store.name}</span>
     <span style="font-size:13px;color:var(--t2)">${store.city}</span>
     <span class="badge bstr">${storeTotal(store.id)} stuks</span>
   </div>
@@ -1442,7 +1442,7 @@ function bExportPage(){
 function bAttendance(){
   const todayStr=today();
   const todayAttendance=(S.attendance||[]).filter(a=>a.login_date===todayStr);
-  const storeList=[...S.stores].sort((a,b)=>a.id-b.id).map(store=>{
+  const storeList=[...S.stores].sort((a,b)=>(a.sort_order||100)-(b.sort_order||100)||(a.id-b.id)).map(store=>{
     const acc=S.accounts.find(a=>a.store_id===store.id&&a.role==='store');
     const checkin=todayAttendance.find(a=>a.store_id===store.id);
     return{store,acc,checkin};
@@ -1672,7 +1672,7 @@ function bDriverStores(){
   <div class="tw"><table>
     <colgroup><col style="width:200px"><col style="width:140px"><col style="width:80px"><col style="width:80px"></colgroup>
     <thead><tr><th>Naam</th><th>Stad</th><th>Totaal</th><th>Producten</th></tr></thead>
-    <tbody>${[...S.stores].sort((a,b)=>a.id-b.id).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
+    <tbody>${[...S.stores].sort((a,b)=>(a.sort_order||100)-(b.sort_order||100)||(a.id-b.id)).map(s=>`<tr style="cursor:pointer" class="store-row" data-sid="${s.id}">
       <td style="font-weight:500;color:#D4537E">${s.name}</td>
       <td style="color:var(--t2)">${s.city}</td>
       <td>${storeTotal(s.id)}</td>
