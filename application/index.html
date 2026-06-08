@@ -1853,12 +1853,23 @@ function buildModal(){
     const orderItems=isEdit?(S.orderItems||[]).filter(i=>i.order_id===o.id):[];
     const savedNote=m._savedNote!==undefined?m._savedNote:(isEdit?o.note||'':'');
     const sf=isStore?`<input type="hidden" id="m-store" value="${S.session.store_id}">`
-      :`<div class="fr"><label>${l.store}</label><select id="m-store">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m.storeId)==s.id?'selected':''}>${s.name}</option>`).join('')}</select></div>`;
+      :`<div class="fr"><label>${l.store}</label><select id="m-store" onchange="S.modal._savedStore=this.value;S.modal.orderQtys={};S.modal.requestedProductIds=[];S.modal.removedProductIds=[];S.modal._savedNote=document.getElementById('m-note')?.value||'';render();bindModal()">${S.stores.map(s=>`<option value="${s.id}" ${(isEdit?o.store_id:m._savedStore?parseInt(m._savedStore)===s.id:m.storeId)==s.id?'selected':''}>${s.name.includes('Magazijn')?'🏭 ':'🏪 '}${s.name}</option>`).join('')}</select></div>`;
     
-    // Get orderable products - admins/managers see ALL products, stores see only ACTIVE orderable
-    const orderProds=isAdminOrManager
+    // Determine selected store
+    const selectedStoreId=isAdminOrManager
+      ? (m._savedStore?parseInt(m._savedStore):S.stores[0]?.id)
+      : S.session.store_id;
+    const selectedStore=S.stores.find(s=>s.id===selectedStoreId);
+    const isMagazijn=selectedStore?.name?.includes('Magazijn');
+
+    // Get orderable products based on selected store type
+    // Magazijn → all products including pallets
+    // Winkel → only active orderable products (no pallet/magazijn-only)
+    const orderProds=isMagazijn
       ? [...S.products].sort((a,b)=>a.name.localeCompare(b.name))
-      : (S.orderableProducts||[]).filter(p=>p.active!==false);
+      : isAdminOrManager
+        ? (S.orderableProducts||[]).filter(p=>p.active!==false).sort((a,b)=>a.name.localeCompare(b.name))
+        : (S.orderableProducts||[]).filter(p=>p.active!==false);
     // Current order quantities
     const currentQtys=m.orderQtys||{};
     
