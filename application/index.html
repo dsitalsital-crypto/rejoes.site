@@ -1742,12 +1742,23 @@ function buildStoreView(){
       <colgroup><col style="width:175px"><col style="width:95px"><col style="width:115px"><col style="width:60px"><col style="width:80px"><col style="width:90px"></colgroup>
       <thead><tr><th>${l.product}</th><th>${l.cat}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th><th></th></tr></thead>
       <tbody>${(()=>{
-        const isOutlet=S.stores.find(s=>s.id===acc.store_id)?.is_outlet===true;
+        const storeObj=S.stores.find(s=>s.id===acc.store_id);
+        const isOutlet=storeObj?.is_outlet===true;
+        const isMagazijnStore=storeObj?.name?.includes('Magazijn');
+
         // Return products: OWN (for normal stores) + REJECT (for all stores)
         const returnNames=isOutlet?['REJECT']:['OWN','REJECT'];
-        // Regular products (exclude return products)
-        const regularProds=S.products.filter(p=>!returnNames.includes(p.name));
-        const returnProds=S.products.filter(p=>returnNames.includes(p.name));
+
+        // Filter products based on store type
+        // Magazijn: all products visible
+        // Winkel: only products with for_type = 'winkel', 'both', or no for_type
+        const visibleProds=isMagazijnStore
+          ? S.products
+          : S.products.filter(p=>!p.for_type||p.for_type==='winkel'||p.for_type==='both');
+
+        // Regular products (exclude return products from main list)
+        const regularProds=visibleProds.filter(p=>!returnNames.includes(p.name));
+        const returnProds=visibleProds.filter(p=>returnNames.includes(p.name));
 
         const renderRow=(p)=>{
           const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
