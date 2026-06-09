@@ -1020,11 +1020,11 @@ function bStock(){
   </div>
   <div class="tw"><table>
     <colgroup><col style="width:160px"><col style="width:70px">${show.map(()=>'<col style="width:115px">').join('')}${extra?'<col style="width:70px">':''}<col style="width:58px"><col style="width:60px"></colgroup>
-    <thead><tr><th>${l.product}</th><th>${l.sku}</th>${show.map(s=>`<th title="${s.name}">${s.name}</th>`).join('')}${extra?`<th>+${extra}</th>`:''}<th>${l.totalLbl}</th><th>${l.status}</th></tr></thead>
+    <thead><tr><th>${l.product}</th>${show.map(s=>`<th title="${s.name}">${s.name}</th>`).join('')}${extra?`<th>+${extra}</th>`:''}<th>${l.totalLbl}</th><th>${l.status}</th></tr></thead>
     <tbody>${filtered.length?filtered.map(p=>{
       const tot=S.stores.reduce((a,s)=>a+qty(s.id,p.id),0);
       return`<tr>
-        <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.category}·${p.size}kg</div></td>
+        <td><div style="font-weight:500">${p.name}</div></td>
         ${show.map(s=>{const q=qty(s.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
           return`<td><div class="barcell"><span style="min-width:26px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div>
           <span class="elk" data-edit="${s.id}-${p.id}" style="font-size:10px;color:var(--t3);cursor:pointer">${l.edit.toLowerCase()}</span>
