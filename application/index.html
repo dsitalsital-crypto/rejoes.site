@@ -4067,13 +4067,11 @@ if(_savedSession&&_savedCompany){
     setTimeout(()=>checkDeliveryNotification(),1500);
   }
   // Auto-load company from URL if present
-  if(window._autoHandle){
-    S.handleInput=window._autoHandle;
-    S.handle=window._autoHandle;
-    lookupCompany(window._autoHandle);
-  }else{
-    render();
-  }
+  // Always auto-load rejoes
+  const _handle = window._autoHandle || 'rejoes';
+  S.handleInput = _handle;
+  S.handle = _handle;
+  lookupCompany(_handle);
 }
 // Start polling after initial load
 setTimeout(()=>{
