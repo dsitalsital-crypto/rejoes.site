@@ -805,8 +805,8 @@ function buildLogin(){
       <div style="font-size:16px;font-weight:700">Admin Panel</div>
     </div>
     ${S.loginErr?`<div style="background:rgba(226,75,74,0.1);border:0.5px solid ${RED};border-radius:var(--r1);padding:9px 12px;font-size:12px;color:${RED};margin-bottom:14px">${S.loginErr}</div>`:''}
-    <div class="fr"><label>${l.user}</label><input type="text" id="login-user" placeholder="Gebruikersnaam" autocomplete="username"></div>
-    <div class="fr"><label>${l.pass}</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password"></div>
+    <div class="fr"><label>${l.user}</label><input type="text" id="lu" placeholder="Gebruikersnaam" autocomplete="username"></div>
+    <div class="fr"><label>${l.pass}</label><input type="password" id="lp" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn bp" id="login-btn" style="width:100%;justify-content:center;height:42px;font-size:15px;margin-top:4px">${l.login}</button>
     <div style="margin-top:12px;text-align:center">
       <button class="btn bsm" onclick="S.loginMode=null;S.loginErr=null;render()" style="font-size:12px;color:var(--t2);border:none;background:none">← Terug</button>
