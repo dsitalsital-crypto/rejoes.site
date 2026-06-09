@@ -1224,17 +1224,14 @@ function bStoreDetail(store,l){
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:180px"><col style="width:80px"><col style="width:100px"><col style="width:60px"><col style="width:120px"><col style="width:65px"><col style="width:75px"></colgroup>
-      <thead><tr><th>${t().product}</th><th>${t().sku}</th><th>${t().cat}</th><th>${t().size} (kg)</th><th>${t().stockTab}</th><th>${t().min}</th><th>${t().status}</th></tr></thead>
+      <thead><tr><th>${t().product}</th><th>${t().min}</th><th>${t().stockTab}</th><th>${t().status}</th></tr></thead>
       <tbody>${(()=>{
         const renderRow2=(p)=>{
           const q=qty(store.id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
           return`<tr>
             <td style="font-weight:500">${p.name}</td>
-            <td style="color:var(--t2)">${p.sku}</td>
-            <td>${p.category}</td>
-            <td>${p.size}kg</td>
+            <td style="color:var(--t2)">${p.min_stock||0}</td>
             <td><div class="barcell"><span style="min-width:28px;text-align:right;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
-            <td style="color:var(--t2)">${p.min_stock}</td>
             <td>${sbadge(q,p.min_stock)}</td>
           </tr>`;
         };
@@ -1319,14 +1316,14 @@ function bProducts(){
     </div>
   </div>
   <div class="tw"><table>
-    <colgroup><col style="width:170px"><col style="width:80px"><col style="width:110px"><col style="width:65px"><col style="width:65px"><col style="width:68px"><col style="width:100px"></colgroup>
-    <thead><tr><th>${l.name}</th><th>${l.sku}</th><th>${l.cat}</th><th>${l.size} (kg)</th><th>${l.min}</th><th>${l.totalLbl}</th><th></th></tr></thead>
+    <colgroup><col style="width:220px"><col style="width:80px"><col style="width:80px"><col style="width:100px"></colgroup>
+    <thead><tr><th>${l.name}</th><th>${l.min}</th><th>${l.totalLbl}</th><th></th></tr></thead>
     <tbody>${filtered.length?filtered.map(p=>`<tr>
-      <td style="font-weight:500">${p.name}</td><td style="color:var(--t2)">${p.sku}</td>
-      <td>${p.category}</td><td>${p.size}kg</td><td>${p.min_stock}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td>${p.min_stock}</td>
       <td>${S.stores.reduce((a,s)=>a+qty(s.id,p.id),0)}</td>
       <td style="display:flex;gap:4px"><button class="btn bsm eprod" data-id="${p.id}">${l.edit}</button>${S.session.role==='admin'?`<button class="btn bd bsm dprod" data-id="${p.id}">${l.remove}</button>`:''}</td>
-    </tr>`).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
+    </tr>`).join(''):`<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noProducts}</td></tr>`}
     </tbody>
   </table></div>
 </div></div>`}
@@ -1798,7 +1795,7 @@ function buildStoreView(){
     <div class="ph"><span class="pht">${l.myStock} — ${store?.name}</span><button class="btn bp bsm" id="store-order-btn">+ ${l.addOrder}</button></div>
     <div class="tw"><table>
       <colgroup><col style="width:175px"><col style="width:95px"><col style="width:115px"><col style="width:60px"><col style="width:80px"><col style="width:90px"></colgroup>
-      <thead><tr><th>${l.product}</th><th>${l.cat}</th><th>${l.stockTab}</th><th>${l.min}</th><th>${l.status}</th><th></th></tr></thead>
+      <thead><tr><th>${l.product}</th><th>${l.min}</th><th>${l.stockTab}</th><th>${l.status}</th><th></th></tr></thead>
       <tbody>${(()=>{
         const storeObj=S.stores.find(s=>s.id===acc.store_id);
         const isOutlet=storeObj?.is_outlet===true;
@@ -1821,10 +1818,9 @@ function buildStoreView(){
         const renderRow=(p)=>{
           const q=qty(acc.store_id,p.id),pct=Math.round(q/maxQ*100),c=barCol(q,p.min_stock);
           return`<tr>
-            <td><div style="font-weight:500">${p.name}</div><div style="font-size:10px;color:var(--t3)">${p.sku}·${p.size}kg</div></td>
-            <td>${p.category}</td>
+            <td><div style="font-weight:500">${p.name}</div></td>
+            <td>${p.min_stock||0}</td>
             <td><div class="barcell"><span style="min-width:28px;font-weight:500;color:${p.min_stock>0&&q===0?RED:p.min_stock>0&&q<p.min_stock?AMBER:'var(--t1)'}">${q}</span><div class="barbg"><div class="barfill" style="width:${pct}%;background:${c}"></div></div></div></td>
-            <td style="color:var(--t2)">${p.min_stock}</td>
             <td>${sbadge(q,p.min_stock)}</td>
             <td style="display:flex;gap:4px">
               <button class="btn bsm elk2" data-edit="${acc.store_id}-${p.id}">✏️</button>
