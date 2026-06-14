@@ -1418,6 +1418,7 @@ function bWeeklyRequests(){
 </div>`}
 
 function bExportPage(){
+  const l=t();
   const exp=S.exportPage||{type:'orders',format:'excel',period:'month',storeId:'all',status:'all'};
   return`<div>
   <div class="panel">
@@ -1528,6 +1529,7 @@ function bAttendance(){
 </div>`}
 
 function bComplaints(){
+  const l=t();
   const complaints=[...S.complaints||[]].sort((a,b)=>b.id-a.id);
   const openCount=complaints.filter(c=>c.status==='open').length;
   return`<div class="panel">
@@ -1736,6 +1738,7 @@ function bDriverExport(){
 }
 
 function bDriverComplaints(){
+  const l=t();
   return`<div class="panel">
   <div class="ph"><span class="pht">📋 Klachten indienen</span><button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button></div>
   <div class="tw"><table>
