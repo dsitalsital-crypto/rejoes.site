@@ -378,6 +378,10 @@ body.rejoes-app .rejoes-title {
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(74,38,128,0.2) 0%,transparent 70%);border-radius:50%"></div>
 </div>
 <script>
+window.onerror=function(msg,src,line,col,err){
+  document.getElementById('root').innerHTML='<div style="padding:2rem;color:red;font-family:monospace">JS Error: '+msg+' (line '+line+')</div>';
+  return false;
+};
 const SB='https://rijn-stockmanagement.dsitalsital.workers.dev';
 
 // Global date/time formatting - always NL locale, European notation
@@ -700,12 +704,14 @@ function render(){
   if(S.loading){
     html=`<div class="loading"><div class="spinner"></div>${t().loading}</div>`;
   }else if(S.screen==='portal'){
-    // Skip portal for Rejoes - go straight to login
-    if(S.handle==='rejoes'||window._autoHandle==='rejoes'){
-      lookupCompany('rejoes');
-      return;
+    // Skip portal for Rejoes - go straight to login (only if not already looking up)
+    if((S.handle==='rejoes'||window._autoHandle==='rejoes')&&!S._lookingUp){
+      S._lookingUp=true;
+      lookupCompany('rejoes').finally(()=>{S._lookingUp=false;});
+      html='<div style="display:flex;align-items:center;justify-content:center;min-height:80vh"><div style="text-align:center"><div class="spinner"></div><div style="margin-top:1rem;color:var(--t2)">Laden...</div></div></div>';
+    } else {
+      html=buildPortal();
     }
-    html=buildPortal();
   }else if(S.screen==='login'){
     html=S.session?buildApp():buildLogin();
   }else{
