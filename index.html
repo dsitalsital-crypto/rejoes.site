@@ -1331,6 +1331,7 @@ function bAccounts(){
 </div>`}
 
 function bSuppliers(){
+  const l=t();
   const suppliers=S.suppliers||[];
   const ps=S.productSearch||'';
   const tab=S.productTab||'products';
@@ -1364,6 +1365,7 @@ function bSuppliers(){
 </div></div>`}
 
 function bWeeklyRequests(){
+  const l=t();
   const weekStart=getWeekStart();
   const thisWeek=[...(S.weeklyRequests||[])].filter(r=>r.week_start===weekStart).sort((a,b)=>b.quantity-a.quantity);
   const maxQty=Math.max(1,...thisWeek.map(r=>r.quantity));
