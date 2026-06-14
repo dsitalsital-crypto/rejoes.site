@@ -447,7 +447,7 @@ const TR={
     addSupplier:'Leverancier toevoegen',orderMethod:'Bestelmethode',storePers:'Winkelpersoneel',
     adminPanelLbl:'Admin Panel',stockCountLbl:'Tellen en aanvragen',manageOv:'Beheer en overzicht',
     minStock:'Min. voorraad',suppliers:'Leveranciers',notes:'Opmerkingen',contactPerson:'Contactpersoon',
-    fileComplaint:'Klacht indienen',reply:'Reageren',deleteBtn:'Verwijder',typeReply:'Typ je reactie...',typeSub:'Beschrijving...',chooseType:'Kies type',websiteIssue:'Website probleem',goodsIssue:'Goederenklacht',generalIssue:'Algemene klacht',complaintDetails:'Klacht details',submittedOn:'Ingediend op',replies:'Reacties',markResolved:'Markeer als opgelost',login:'Inloggen',addAccount:'+ Account toevoegen',role:'Rol',store:'Winkel',
+    fileComplaint:'Klacht indienen',reply:'Reageren',deleteBtn:'Verwijder',description2:'Omschrijving',actions:'Acties',type:'Type',subject2:'Onderwerp',exportLbl:'Export',attendanceLbl:'Aanwezigheid',weeklyListLbl:'Weeklijst',complaintsLbl:'Klachten',openLbl:'open',pendingLbl:'In behandeling',resolvedLbl:'Opgelost',bookmarkLbl:'Bladwijzer',chatLbl:'Chat',detailLbl:'Detail',typeReply:'Typ je reactie...',typeSub:'Beschrijving...',chooseType:'Kies type',websiteIssue:'Website probleem',goodsIssue:'Goederenklacht',generalIssue:'Algemene klacht',complaintDetails:'Klacht details',submittedOn:'Ingediend op',replies:'Reacties',markResolved:'Markeer als opgelost',login:'Inloggen',addAccount:'+ Account toevoegen',role:'Rol',store:'Winkel',
     driverView:'Driver overzicht',deliverBtn:'✓ Geleverd',todayOrders:'Orders van vandaag',
     approve:'Goedkeuren',planDelivery:'Leverdag plannen',sendToDriver:'Stuur naar Driver',
     delivered:'Geleverd',approved:'Goedgekeurd',planning:'Planning',noOrders:'Geen orders',
@@ -484,7 +484,7 @@ const TR={
     addSupplier:'Add supplier',orderMethod:'Order method',storePers:'Store staff',
     adminPanelLbl:'Admin Panel',stockCountLbl:'Count and request',manageOv:'Manage and overview',
     minStock:'Min. stock',suppliers:'Suppliers',notes:'Notes',contactPerson:'Contact person',
-    fileComplaint:'File complaint',reply:'Reply',deleteBtn:'Delete',typeReply:'Type your reply...',typeSub:'Description...',chooseType:'Choose type',websiteIssue:'Website issue',goodsIssue:'Goods complaint',generalIssue:'General complaint',complaintDetails:'Complaint details',submittedOn:'Submitted on',replies:'Replies',markResolved:'Mark as resolved',login:'Log in',addAccount:'+ Add account',role:'Role',store:'Store',
+    fileComplaint:'File complaint',reply:'Reply',deleteBtn:'Delete',description2:'Description',actions:'Actions',type:'Type',subject2:'Subject',exportLbl:'Export',attendanceLbl:'Attendance',weeklyListLbl:'Weekly list',complaintsLbl:'Complaints',openLbl:'open',pendingLbl:'In progress',resolvedLbl:'Resolved',bookmarkLbl:'Bookmark',chatLbl:'Chat',detailLbl:'Detail',typeReply:'Type your reply...',typeSub:'Description...',chooseType:'Choose type',websiteIssue:'Website issue',goodsIssue:'Goods complaint',generalIssue:'General complaint',complaintDetails:'Complaint details',submittedOn:'Submitted on',replies:'Replies',markResolved:'Mark as resolved',login:'Log in',addAccount:'+ Add account',role:'Role',store:'Store',
     driverView:'Driver overview',deliverBtn:'✓ Delivered',todayOrders:"Today's orders",
     approve:'Approve',planDelivery:'Plan delivery',sendToDriver:'Send to Driver',
     delivered:'Delivered',approved:'Approved',planning:'Planning',noOrders:'No orders',
@@ -521,7 +521,7 @@ const TR={
     addSupplier:'Tedarikçi ekle',orderMethod:'Sipariş yöntemi',storePers:'Mağaza personeli',
     adminPanelLbl:'Yönetici Paneli',stockCountLbl:'Say ve talep et',manageOv:'Yönet ve genel bakış',
     minStock:'Min. stok',suppliers:'Tedarikçiler',notes:'Notlar',contactPerson:'İletişim kişisi',
-    fileComplaint:'Şikayet bildir',reply:'Yanıtla',deleteBtn:'Sil',typeReply:'Yanıtınızı yazın...',typeSub:'Açıklama...',chooseType:'Tür seç',websiteIssue:'Web sitesi sorunu',goodsIssue:'Mal şikayeti',generalIssue:'Genel şikayet',complaintDetails:'Şikayet detayları',submittedOn:'Gönderildi',replies:'Yanıtlar',markResolved:'Çözüldü olarak işaretle',login:'Giriş Yap',addAccount:'+ Hesap ekle',role:'Rol',store:'Mağaza',
+    fileComplaint:'Şikayet bildir',reply:'Yanıtla',deleteBtn:'Sil',description2:'Açıklama',actions:'Eylemler',type:'Tür',subject2:'Konu',exportLbl:'Dışa Aktar',attendanceLbl:'Katılım',weeklyListLbl:'Haftalık liste',complaintsLbl:'Şikayetler',openLbl:'açık',pendingLbl:'İşlemde',resolvedLbl:'Çözüldü',bookmarkLbl:'Yer imi',chatLbl:'Sohbet',detailLbl:'Detay',typeReply:'Yanıtınızı yazın...',typeSub:'Açıklama...',chooseType:'Tür seç',websiteIssue:'Web sitesi sorunu',goodsIssue:'Mal şikayeti',generalIssue:'Genel şikayet',complaintDetails:'Şikayet detayları',submittedOn:'Gönderildi',replies:'Yanıtlar',markResolved:'Çözüldü olarak işaretle',login:'Giriş Yap',addAccount:'+ Hesap ekle',role:'Rol',store:'Mağaza',
     driverView:'Sürücü görünümü',deliverBtn:'✓ Teslim Edildi',todayOrders:'Bugünün siparişleri',
     approve:'Onayla',planDelivery:'Teslimat planla',sendToDriver:'Sürücüye Gönder',
     delivered:'Teslim edildi',approved:'Onaylandı',planning:'Planlama',noOrders:'Sipariş yok',
@@ -1471,7 +1471,7 @@ function bExportPage(){
           <button class="btn ${exp.status==='all'?'bp':''} exp-status" data-val="all">Alle</button>
           <button class="btn ${exp.status==='open'?'bp':''} exp-status" data-val="open">Open</button>
           <button class="btn ${exp.status==='in_progress'?'bp':''} exp-status" data-val="in_progress">${t().inProgress}</button>
-          <button class="btn ${exp.status==='resolved'?'bp':''} exp-status" data-val="resolved">Opgelost</button>
+          <button class="btn ${exp.status==='resolved'?'bp':''} exp-status" data-val="resolved">${l.resolvedLbl}</button>
         </div>
       </div>`:''}
       <div style="background:var(--bg2);border-radius:var(--r1);padding:12px 14px;margin-bottom:1.2rem;font-size:13px">
@@ -1540,7 +1540,7 @@ function bComplaints(){
   </div>
   <div class="tw"><table>
     <colgroup><col style="width:88px"><col style="width:130px"><col style="width:90px"><col style="width:140px"><col style="width:170px"><col style="width:75px"><col style="width:180px"></colgroup>
-    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Acties</th></tr></thead>
+    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>${l.description2}</th><th>${l.status}</th><th>${l.actions}</th></tr></thead>
     <tbody>${complaints.length?complaints.map(c=>{
       const st=S.stores.find(s=>s.id===c.store_id);
       return`<tr>
@@ -1549,11 +1549,11 @@ function bComplaints(){
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?`<span class="badge bsent">${t().inProgress}</span>`:'<span class="badge bdone">Opgelost</span>'}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?`<span class="badge bsent">${t().inProgress}</span>`:'<span class="badge bdone">${l.resolvedLbl}</span>'}</td>
         <td><div style="display:flex;gap:4px;flex-wrap:wrap">
           <button class="btn bsm" onclick="bookmarkComplaint(${c.id})" style="color:${c.bookmarked?'#F5C842':'var(--t3)'}">🔖</button>
           ${c.status==='open'?`<button class="btn bsm cprog" data-id="${c.id}">${t().inProgress}</button>`:''}
-          ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">Opgelost</button>`:''}
+          ${c.status!=='resolved'?`<button class="btn bsm cresolve" data-id="${c.id}" style="color:${GREEN}">${l.resolvedLbl}</button>`:''}
           <button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account!=='admin'&&!m.is_read).length}</span>`:''}</button>
           <button class="btn bsm" onclick="showExportModal('complaint',${c.id})">📤</button>
           <button class="btn bd bsm dcomp" data-id="${c.id}">Del</button>
@@ -1740,13 +1740,13 @@ function bDriverComplaints(){
   <div class="ph"><span class="pht">📋 Klachten indienen</span><button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button></div>
   <div class="tw"><table>
     <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:80px"></colgroup>
-    <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
+    <thead><tr><th>Datum</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
     <tbody>${(S.complaints||[]).length?(S.complaints||[]).map(c=>`<tr>
       <td style="color:var(--t2)">${fDate(c.created_at)}</td>
       <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
       <td style="font-weight:500">${c.subject}</td>
       <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-      <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">In behandeling</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+      <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${l.pendingLbl}</span>':'<span class="badge bdone">${l.resolvedLbl}</span>'}</td>
       <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
     </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
     </tbody>
@@ -1859,13 +1859,13 @@ function buildStoreView(){
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
-      <thead><tr><th>Datum</th><th>Type</th><th>Onderwerp</th><th>Omschrijving</th><th>Status</th><th>Chat</th></tr></thead>
+      <thead><tr><th>Datum</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
       <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
         <td style="color:var(--t2)">${fDate(c.created_at)}</td>
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
         <td style="font-weight:500">${c.subject}</td>
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
-        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${t().inProgress}</span>':'<span class="badge bdone">Opgelost</span>'}</td>
+        <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${t().inProgress}</span>':'<span class="badge bdone">${l.resolvedLbl}</span>'}</td>
         <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
       </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
       </tbody>
@@ -2203,7 +2203,7 @@ function buildModal(){
       </select>
     </div>
     <div class="fr"><label>Onderwerp</label><input type="text" id="m-subject" placeholder="Korte omschrijving..."></div>
-    <div class="fr"><label>Omschrijving</label><textarea id="m-desc" style="height:90px" placeholder="Beschrijf het probleem zo duidelijk mogelijk..."></textarea></div>
+    <div class="fr"><label>${l.description2}</label><textarea id="m-desc" style="height:90px" placeholder="Beschrijf het probleem zo duidelijk mogelijk..."></textarea></div>
     <div class="fa"><button class="btn" id="mc">Annuleren</button><button class="btn bp" id="scomp">Indienen</button></div>`;}
   else if(m.type==='reply-complaint'){inner=`<h3>💬 Reageren op klacht</h3>
     <p style="font-size:12px;color:var(--t2);margin-bottom:.9rem"><strong>${m.c.subject}</strong> — ${S.stores.find(s=>s.id===m.c.store_id)?.name||'—'}</p>
