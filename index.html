@@ -418,10 +418,10 @@ const TR={
   nl:{app:'Apparel Stock',signIn:'Inloggen',sub:'Inloggen om verder te gaan',user:'Gebruikersnaam',pass:'Wachtwoord',
     userPh:'admin of store1…store19',quick:'Snel inloggen',hint:'store1/store1pass t/m store19/store19pass',
     loginErr:'Onjuiste gebruikersnaam of wachtwoord.',out:'Uitloggen',fullAccess:'Volledige toegang —',
-    stores2:'winkels',storeOnly:'Alleen aanvragen indienen',total:'Totaal stuks',storesLbl:'Winkels',
+    stores2:'winkels',storeOnly:'Alleen aanvragen indienen',total:l.totalPcs,storesLbl:'Winkels',
     products:'Producten',lowStock:'Lage voorraad',outOfStock:'Niet op voorraad',openReqs:'Open orders',
     stockTab:'Voorraad',alerts:'Meldingen',orders:'Orders',stores:'Winkels',accounts:'Accounts',
-    stockOv:'Voorraadoverzicht',allStores:'Alle winkels',allSt:'Alle',low:'Laag',outSt:'Uitverkocht',
+    stockOv:'Voorraadoverzicht',allStores:l.allStores2,allSt:'Alle',low:'Laag',outSt:'Uitverkocht',
     cancel:'Annuleren',save:'Opgeslagen',add:'Toevoegen',edit:'Bewerken',remove:'Verwijderen',
     addProduct:'+ Product toevoegen',search:'Zoeken...',cat:'Categorie',size:'Gewicht',
     min:'Min.',totalLbl:'Totaal',product:'Product',noProducts:'Geen producten',
@@ -434,7 +434,7 @@ const TR={
     chat:'💬 Chat',sendMsg:'Stuur',msgPh:'Typ een bericht...',noMsgs:'Nog geen berichten',chatTitle:'Chat',
     checkedIn:'Ingecheck',notCheckedIn:'Niet ingecheck',attendance:'Aanwezigheid',
     weeklyList:'Weeklijst',noWeeklyData:'Nog geen weekdata',
-    complaints:'Klachten',newComplaint:'Nieuwe klacht',noComplaints:'Geen klachten',
+    complaints:'Klachten',newComplaint:'Nieuwe klacht',noComplaints:l.noComplaints2,
     complaintType:'Type klacht',subject:'Onderwerp',description:'Beschrijving',
     submit:'Indienen',resolve:'Oplossen',inProgress:'In behandeling',resolved:'Opgelost',
     website:'Website',goods:'Goederen',
@@ -451,7 +451,7 @@ const TR={
     driverView:'Driver overzicht',deliverBtn:'✓ Geleverd',todayOrders:'Orders van vandaag',
     approve:'Goedkeuren',planDelivery:'Leverdag plannen',sendToDriver:'Stuur naar Driver',
     delivered:'Geleverd',approved:'Goedgekeurd',planning:'Planning',noOrders:'Geen orders',
-    newOrder:'+ Nieuwe Order',editOrder:'Order bewerken',status:'Status'},
+    newOrder:'+ Nieuwe Order',editOrder:'Order bewerken',status:'Status',datum:'Datum',winkelLbl:'Winkel',typeLbl:'Type',subjectLbl:'Onderwerp',noComplaints2:l.noComplaints2,noComplaintsDriver:l.noComplaintsDriver,allStores2:l.allStores2,weekOf:l.weekOf,noWeeklyReqs:l.noWeeklyReqs,totalPcs:l.totalPcs,checkedInLbl:'Ingecheck',notCheckedInLbl:'Niet ingecheck',percentLbl:'Aanwezig',periodLbl:'Periode',downloadLbl:'Downloaden',filterLbl:'Filter',selectPeriod:'Selecteer periode',rankLbl:'Rang',productLbl:'Product',reqLbl:'Aanvragen'},
   en:{app:'Apparel Stock',signIn:'Sign in',sub:'Sign in to continue',user:'Username',pass:'Password',
     userPh:'admin or store1…store19',quick:'Quick login',hint:'store1/store1pass through store19/store19pass',
     loginErr:'Incorrect username or password.',out:'Sign out',fullAccess:'Full access —',
@@ -488,7 +488,7 @@ const TR={
     driverView:'Driver overview',deliverBtn:'✓ Delivered',todayOrders:"Today's orders",
     approve:'Approve',planDelivery:'Plan delivery',sendToDriver:'Send to Driver',
     delivered:'Delivered',approved:'Approved',planning:'Planning',noOrders:'No orders',
-    newOrder:'+ New Order',editOrder:'Edit order',status:'Status'},
+    newOrder:'+ New Order',editOrder:'Edit order',status:'Status',datum:'Date',winkelLbl:'Store',typeLbl:'Type',subjectLbl:'Subject',noComplaints2:'No complaints',noComplaintsDriver:'No complaints submitted',allStores2:'All stores',weekOf:'Week of',noWeeklyReqs:'No requests this week',totalPcs:'Total units',checkedInLbl:'Checked in',notCheckedInLbl:'Not checked in',percentLbl:'Present',periodLbl:'Period',downloadLbl:'Download',filterLbl:'Filter',selectPeriod:'Select period',rankLbl:'Rank',productLbl:'Product',reqLbl:'Requests'},
   tr:{app:'Giyim Stok',signIn:'Giriş Yap',sub:'Devam etmek için giriş yapın',user:'Kullanıcı adı',pass:'Şifre',
     userPh:'admin veya store1…store19',quick:'Hızlı giriş',hint:'store1/store1pass … store19/store19pass',
     loginErr:'Hatalı kullanıcı adı veya şifre.',out:'Çıkış',fullAccess:'Tam erişim —',
@@ -525,7 +525,7 @@ const TR={
     driverView:'Sürücü görünümü',deliverBtn:'✓ Teslim Edildi',todayOrders:'Bugünün siparişleri',
     approve:'Onayla',planDelivery:'Teslimat planla',sendToDriver:'Sürücüye Gönder',
     delivered:'Teslim edildi',approved:'Onaylandı',planning:'Planlama',noOrders:'Sipariş yok',
-    newOrder:'+ Yeni Sipariş',editOrder:'Siparişi düzenle',status:'Durum'}
+    newOrder:'+ Yeni Sipariş',editOrder:'Siparişi düzenle',status:'Durum',datum:'Tarih',winkelLbl:'Mağaza',typeLbl:'Tür',subjectLbl:'Konu',noComplaints2:'Şikayet yok',noComplaintsDriver:'Şikayet gönderilmedi',allStores2:'Tüm mağazalar',weekOf:'Hafta',noWeeklyReqs:'Bu hafta talep yok',totalPcs:'Toplam adet',checkedInLbl:'Giriş yapıldı',notCheckedInLbl:'Giriş yapılmadı',percentLbl:'Mevcut',periodLbl:'Dönem',downloadLbl:'İndir',filterLbl:'Filtre',selectPeriod:'Dönem seç',rankLbl:'Sıra',productLbl:'Ürün',reqLbl:'Talepler'}
 };
 
 // Session persistence - restore session if within 1 hour
@@ -935,7 +935,7 @@ function bDashboard(){
       <div class="met-v" style="color:${GREEN}">${todayAtt} / ${S.stores.length}</div>
     </div>
     <div class="met" style="border-left:3px solid #D4537E">
-      <div class="met-l">Totaal stuks</div>
+      <div class="met-l">${l.totalPcs}</div>
       <div class="met-v">${totalAll().toLocaleString(NL,{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ})}</div>
     </div>
   </div>
@@ -1390,9 +1390,9 @@ function bWeeklyRequests(){
   return`<div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem">
     <div class="met"><div class="met-l">Producten</div><div class="met-v">${thisWeek.length}</div></div>
-    <div class="met"><div class="met-l">Totaal stuks</div><div class="met-v">${totalQty}</div></div>
+    <div class="met"><div class="met-l">${l.totalPcs}</div><div class="met-v">${totalQty}</div></div>
     <div class="met"><div class="met-l">Reset over</div><div class="met-v" style="font-size:15px">${resetStr}</div></div>
-    <div class="met"><div class="met-l">Week van</div><div class="met-v" style="font-size:14px">${weekStart}</div></div>
+    <div class="met"><div class="met-l">${l.weekOf}</div><div class="met-v" style="font-size:14px">${weekStart}</div></div>
   </div>
   <div style="display:grid;grid-template-columns:${thisWeek.length?'220px 1fr':'1fr'};gap:12px;align-items:start">
     ${thisWeek.length?`<div class="panel" style="padding:1rem;display:flex;flex-direction:column;align-items:center">
@@ -1410,7 +1410,7 @@ function bWeeklyRequests(){
         <tbody>${thisWeek.length?thisWeek.map((r2,i)=>{
           const pct=Math.round(r2.quantity/maxQty*100),col=colors[i%colors.length];
           return`<tr><td style="font-weight:700;color:${col}">${i+1}</td><td style="font-weight:500">${r2.product_name}</td><td style="color:var(--t2);font-size:11px">${r2.product_sku}</td><td><span style="font-size:16px;font-weight:700;color:${col}">${r2.quantity}</span></td><td><div class="barbg"><div class="barfill" style="width:${pct}%;background:${col}"></div></div></td></tr>`;
-        }).join(''):`<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--t3)">Nog geen aanvragen deze week</td></tr>`}
+        }).join(''):`<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--t3)">${l.noWeeklyReqs}</td></tr>`}
         </tbody>
       </table></div>
     </div>
@@ -1542,7 +1542,7 @@ function bComplaints(){
   </div>
   <div class="tw"><table>
     <colgroup><col style="width:88px"><col style="width:130px"><col style="width:90px"><col style="width:140px"><col style="width:170px"><col style="width:75px"><col style="width:180px"></colgroup>
-    <thead><tr><th>Datum</th><th>Winkel</th><th>Type</th><th>Onderwerp</th><th>${l.description2}</th><th>${l.status}</th><th>${l.actions}</th></tr></thead>
+    <thead><tr><th>${l.datum}</th><th>${l.winkelLbl}</th><th>${l.typeLbl}</th><th>${l.subjectLbl}</th><th>${l.description2}</th><th>${l.status}</th><th>${l.actions}</th></tr></thead>
     <tbody>${complaints.length?complaints.map(c=>{
       const st=S.stores.find(s=>s.id===c.store_id);
       return`<tr>
@@ -1561,7 +1561,7 @@ function bComplaints(){
           <button class="btn bd bsm dcomp" data-id="${c.id}">Del</button>
         </div></td>
       </tr>`;
-    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten</td></tr>`}
+    }).join(''):`<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noComplaints2}</td></tr>`}
     </tbody>
   </table></div>
 </div>`}
@@ -1743,7 +1743,7 @@ function bDriverComplaints(){
   <div class="ph"><span class="pht">📋 Klachten indienen</span><button class="btn bp bsm" id="add-complaint-btn">+ Klacht indienen</button></div>
   <div class="tw"><table>
     <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:80px"></colgroup>
-    <thead><tr><th>Datum</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
+    <thead><tr><th>${l.datum}</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
     <tbody>${(S.complaints||[]).length?(S.complaints||[]).map(c=>`<tr>
       <td style="color:var(--t2)">${fDate(c.created_at)}</td>
       <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
@@ -1751,7 +1751,7 @@ function bDriverComplaints(){
       <td style="font-size:11px;color:var(--t2)">${c.description}</td>
       <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${l.pendingLbl}</span>':'<span class="badge bdone">${l.resolvedLbl}</span>'}</td>
       <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
-    </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
+    </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noComplaintsDriver}</td></tr>`}
     </tbody>
   </table></div>
 </div>`}
@@ -1862,7 +1862,7 @@ function buildStoreView(){
     </div>
     <div class="tw"><table>
       <colgroup><col style="width:88px"><col style="width:90px"><col style="width:150px"><col style="width:180px"><col style="width:70px"><col style="width:150px"></colgroup>
-      <thead><tr><th>Datum</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
+      <thead><tr><th>${l.datum}</th><th>${l.type}</th><th>${l.subject2}</th><th>${l.description2}</th><th>Status</th><th>Chat</th></tr></thead>
       <tbody>${myComplaints.length?myComplaints.map(c=>`<tr>
         <td style="color:var(--t2)">${fDate(c.created_at)}</td>
         <td>${c.type==='website'?'🖥️ Website':c.type==='goods'?'📦 Goederen':'📝 Algemeen'}</td>
@@ -1870,7 +1870,7 @@ function buildStoreView(){
         <td style="font-size:11px;color:var(--t2)">${c.description}</td>
         <td>${c.status==='open'?'<span class="badge bnew">Open</span>':c.status==='in_progress'?'<span class="badge bsent">${t().inProgress}</span>':'<span class="badge bdone">${l.resolvedLbl}</span>'}</td>
         <td><button class="btn bsm cchat" data-id="${c.id}">💬${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length?` <span style="background:#D4537E;color:#fff;border-radius:10px;padding:0 4px;font-size:10px">${(S.complaintMsgs||[]).filter(m=>m.complaint_id===c.id&&m.from_account==='admin'&&!m.is_read).length}</span>`:''}</button></td>
-      </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">Geen klachten ingediend</td></tr>`}
+      </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;padding:1.5rem;color:var(--t3)">${l.noComplaintsDriver}</td></tr>`}
       </tbody>
     </table></div>
   </div>
