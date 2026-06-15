@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rejoes Stock">
 <link rel="apple-touch-icon" href="icon-192.png">
-<!-- v2.1 -->
+<!-- v2.1 - fixed admin overlay issue -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -87,10 +87,16 @@ tbody tr:hover{background:var(--bg2)}
   display:flex;align-items:center;justify-content:center;
   background:rgba(15,5,32,0.92);
   backdrop-filter:blur(8px);
-  opacity:0;transition:opacity .5s ease;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .5s ease, visibility .5s ease;
   pointer-events:none;
 }
-#delivery-notif.show{opacity:1;pointer-events:all}
+#delivery-notif.show{
+  opacity:1;
+  visibility:visible;
+  pointer-events:auto;
+}
 #delivery-notif .dn-box{
   background:linear-gradient(135deg,#1a0a2e 0%,#2d1660 50%,#0f0520 100%);
   border:1px solid rgba(168,85,247,0.4);
@@ -696,11 +702,20 @@ function toggleDarkMode(){
 function render(){
   if(S.session)saveSession(S.session);
   applyTheme();
+
   // Save scroll position before render
   const scrollY=window.scrollY;
   const scrollX=window.scrollX;
-  setTimeout(()=>checkAndShowPWABanner&&checkAndShowPWABanner(),500);
+
+  // Safe PWA banner check - prevents ReferenceError if the function is not loaded yet
+  setTimeout(()=>{
+    if(typeof checkAndShowPWABanner==='function'){
+      checkAndShowPWABanner();
+    }
+  },500);
+
   let html;
+
   if(S.loading){
     html=`<div class="loading"><div class="spinner"></div>${t().loading}</div>`;
   }else if(S.screen==='portal'){
@@ -717,17 +732,39 @@ function render(){
   }else{
     html=buildApp();
   }
+
   g('root').innerHTML=html;
-  bind();if(!S.loading&&S.modal)bindModal();
+
+  bind();
+
+  if(!S.loading&&S.modal){
+    bindModal();
+  }
+
   // Restore scroll position after browser paints
   requestAnimationFrame(()=>{
     window.scrollTo(scrollX, scrollY);
   });
-  // Check delivery notification for stores after every render
+
+  // Delivery notification overlay must only be active for store accounts.
+  // Admin/manager/driver screens must never be blocked by this fullscreen overlay.
+  const notif=document.getElementById('delivery-notif');
+
   if(S.session&&S.session.role==='store'){
     checkDeliveryNotification();
+  }else{
+    if(notif){
+      notif.classList.remove('show');
+      delete notif.dataset.dismissKey;
+    }
   }
-  if(S.modal&&(S.modal.type==='chat'||S.modal.type==='complaint-chat')){setTimeout(()=>{const el=g('chat-msgs');if(el)el.scrollTop=el.scrollHeight},50)}
+
+  if(S.modal&&(S.modal.type==='chat'||S.modal.type==='complaint-chat')){
+    setTimeout(()=>{
+      const el=g('chat-msgs');
+      if(el)el.scrollTop=el.scrollHeight;
+    },50);
+  }
 }
 function renderKeepFocus(focusId){
   const val=focusId?gv(focusId):'';render();
@@ -2228,7 +2265,12 @@ function buildModal(){
     <div class="fr"><label>${l.linkedStore}</label><select id="m-sl"><option value="">${l.none}</option>${S.stores.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
     <div class="fa"><button class="btn" id="mc">${l.cancel}</button><button class="btn bp" id="sac">${l.add}</button></div>`;}
 
-  return`<div class="mover" id="mo"><div class="mbox">${inner}</div></div>`;
+  if(!inner){
+    S.modal=null;
+    return '';
+  }
+
+  return `<div class="mover" id="mo"><div class="mbox">${inner}</div></div>`;
 }
 
 async function doLoginWith(username, password){
@@ -3581,43 +3623,57 @@ setInterval(()=>{
   }
 },5*60*1000);
 
+function hideDeliveryNotif(){
+  const notif=document.getElementById('delivery-notif');
+  if(!notif)return;
+
+  notif.classList.remove('show');
+  delete notif.dataset.dismissKey;
+}
+
 function checkDeliveryNotification(){
-  if(!S.session||S.session.role!=='store')return;
+  // Belangrijk: admin, manager en driver mogen nooit deze overlay krijgen.
+  if(!S.session||S.session.role!=='store'){
+    hideDeliveryNotif();
+    return;
+  }
+
   const storeId=S.session.store_id;
-  if(!storeId)return;
-  
+
+  if(!storeId){
+    hideDeliveryNotif();
+    return;
+  }
+
   const todayStr=today();
+
   const tomorrowDate=new Date();
   tomorrowDate.setDate(tomorrowDate.getDate()+1);
   const tomorrowStr=tomorrowDate.toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
-  
-  // Check dismissed keys
+
   const dismissedToday=localStorage.getItem(`dn_today_${storeId}_${todayStr}`);
   const dismissedTomorrow=localStorage.getItem(`dn_tomorrow_${storeId}_${todayStr}`);
-  
-  // Find approved/sent orders for this store
+
   const orders=S.orders||[];
-  
 
-
-  // Check if there's a delivery TODAY
   const deliveryToday=orders.find(o=>
     o.store_id===storeId&&
     (o.status==='approved'||o.status==='sent')&&
     o.delivery_date===todayStr
   );
-  
-  // Check if there's a delivery TOMORROW
+
   const deliveryTomorrow=orders.find(o=>
     o.store_id===storeId&&
     (o.status==='approved'||o.status==='sent')&&
     o.delivery_date===tomorrowStr
   );
-  
+
   if(deliveryToday&&!dismissedToday){
     showDeliveryNotif('today',todayStr,storeId);
-  } else if(deliveryTomorrow&&!dismissedTomorrow){
+  }else if(deliveryTomorrow&&!dismissedTomorrow){
     showDeliveryNotif('tomorrow',tomorrowStr,storeId);
+  }else{
+    hideDeliveryNotif();
   }
 }
 
@@ -3626,29 +3682,49 @@ function showDeliveryNotif(type, dateStr, storeId){
   const emoji=document.getElementById('dn-emoji');
   const title=document.getElementById('dn-title');
   const sub=document.getElementById('dn-sub');
-  if(!notif)return;
-  
+
+  if(!notif||!emoji||!title||!sub)return;
+
+  // Extra veiligheid: toon nooit bij admin/manager/driver.
+  if(!S.session||S.session.role!=='store'||S.session.store_id!==storeId){
+    hideDeliveryNotif();
+    return;
+  }
+
   if(type==='today'){
     notif.dataset.dismissKey=`dn_today_${storeId}_${today()}`;
     emoji.textContent='🚚';
     title.textContent='Je krijgt vandaag een levering!';
     sub.textContent='Jouw bestelling wordt vandaag bezorgd. Zorg dat je er klaar voor bent!';
-  } else {
+  }else{
     notif.dataset.dismissKey=`dn_tomorrow_${storeId}_${today()}`;
     emoji.textContent='📦';
     title.textContent='Je krijgt morgen een levering!';
     sub.textContent='Jouw bestelling wordt morgen bezorgd. Wees er klaar voor!';
   }
-  
-  setTimeout(()=>notif.classList.add('show'), 800);
+
+  setTimeout(()=>{
+    if(S.session&&S.session.role==='store'&&S.session.store_id===storeId){
+      notif.classList.add('show');
+    }else{
+      hideDeliveryNotif();
+    }
+  },800);
 }
 
 function dismissDeliveryNotif(){
   const notif=document.getElementById('delivery-notif');
+
   if(!notif)return;
+
   const key=notif.dataset.dismissKey;
-  if(key)localStorage.setItem(key,'1');
+
+  if(key){
+    localStorage.setItem(key,'1');
+  }
+
   notif.classList.remove('show');
+  delete notif.dataset.dismissKey;
 }
 
 async function resetWeeklyRequests(){
