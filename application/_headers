@@ -1,6 +1,0 @@
-/firebase-messaging-sw.js
-  Service-Worker-Allowed: /
-  Content-Type: application/javascript
-
-/application/
-  Service-Worker-Allowed: /
