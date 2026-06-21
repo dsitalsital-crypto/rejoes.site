@@ -2983,32 +2983,23 @@ function bind(){
     const isAdmin=S.session.role==='admin'||S.session.role==='manager';
     if(!isAdmin&&o.status!=='new'){showToast('Alleen admin kan verzonden orders bewerken','err');return;}
     const items=(S.orderItems||[]).filter(i=>i.order_id===o.id);
-    // Build orderQtys from existing items using orderable product names
+    // Build orderQtys from existing items, always keyed by orderable_product.id
+    // (the order modal now always shows orderable_products for every role).
     const orderQtys={};
     const isAdminOrMgrEdit=S.session.role==='admin'||S.session.role==='manager';
     items.forEach(item=>{
-      if(isAdminOrMgrEdit){
-        if(item.product_id){
-          orderQtys[item.product_id]=item.quantity;
-        } else if(item.product_name){
-          const prod=S.products.find(p=>p.name===item.product_name);
-          if(prod)orderQtys[prod.id]=item.quantity;
-        }
-      } else {
-        let op=null;
-        if(item.orderable_product_id){
-          op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
-        }
-        if(!op&&item.product_name){
-          op=(S.orderableProducts||[]).find(p=>p.name===item.product_name);
-        }
-        if(!op&&item.product_id){
-          // Admin-created order: find orderable product by matching product name
-          const prod=S.products.find(p=>p.id===item.product_id);
-          if(prod)op=(S.orderableProducts||[]).find(p=>p.name===prod.name);
-        }
-        if(op)orderQtys[op.id]=item.quantity;
+      let op=null;
+      if(item.orderable_product_id){
+        op=(S.orderableProducts||[]).find(p=>p.id===item.orderable_product_id);
       }
+      if(!op&&item.product_name){
+        op=(S.orderableProducts||[]).find(p=>p.name===item.product_name);
+      }
+      if(!op&&item.product_id){
+        const prod=S.products.find(p=>p.id===item.product_id);
+        if(prod)op=(S.orderableProducts||[]).find(p=>p.name===prod.name);
+      }
+      if(op)orderQtys[op.id]=item.quantity;
     });
     // requestedProductIds = the IDs that are keys in orderQtys (matching the product list used)
     const requestedProductIds=Object.keys(orderQtys).map(Number);
@@ -3185,25 +3176,17 @@ function bindModal(){
       .filter(([pid,qty])=>qty>0)
       .map(([pid,qty])=>{
         const pid_int=parseInt(pid);
-        if(isAdminOrMgr){
-          // Admin uses S.products - pid is product.id directly
-          const prod=S.products.find(p=>p.id===pid_int);
-          return{
-            product_id:pid_int,
-            orderable_product_id:null,
-            quantity:qty,
-            product_name:prod?.name||''
-          };
-        }else{
-          // Store uses orderableProducts - pid is orderable_product.id
-          const oprod=(S.orderableProducts||[]).find(p=>p.id===pid_int);
-          return{
-            orderable_product_id:pid_int,
-            product_id:null,
-            quantity:1,
-            product_name:oprod?.name||''
-          };
-        }
+        // orderProds (shown in the modal) is always sourced from orderable_products,
+        // for every role - so pid is always an orderable_product.id here.
+        const oprod=(S.orderableProducts||[]).find(p=>p.id===pid_int);
+        // Resolve the matching products.id by name, for stock-tracking on delivery.
+        const matchedProd=oprod?S.products.find(p=>p.name===oprod.name):null;
+        return{
+          orderable_product_id:pid_int,
+          product_id:matchedProd?matchedProd.id:null,
+          quantity:qty,
+          product_name:oprod?.name||''
+        };
       });
     if(!rows.length){showToast('Voeg minimaal 1 product toe','err');return;}
     const fullNote=note+(priceCardsNote?`
