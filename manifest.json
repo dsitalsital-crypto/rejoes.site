@@ -1,0 +1,27 @@
+{
+  "name": "Rejoes Stock Manager",
+  "short_name": "Rejoes Stock",
+  "description": "Voorraad en order beheer voor Rejoes",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f0520",
+  "theme_color": "#0f0520",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "lang": "nl"
+}
