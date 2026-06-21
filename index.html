@@ -1569,6 +1569,7 @@ function bComplaints(){
 </div>`}
 
 function bWeekPlanner(approvedOrders){
+  const l=t();
   const days=['Ma','Di','Wo','Do','Vr','Za','Zo'];
   // Use Amsterdam timezone for all date calculations
   const todayStr=today(); // YYYY-MM-DD in Amsterdam time
@@ -2609,6 +2610,7 @@ async function logWeeklyRequest(orderItems){
 }
 
 function rebuildShoppingList(){
+  const l=t();
   const listContainer=document.querySelector('.shopping-list-items');
   if(!listContainer)return;
   
@@ -2792,6 +2794,7 @@ async function loadCompanyList(){
 }
 
 function bind(){
+  const l=t();
   document.querySelectorAll('[data-lang]').forEach(el=>el.addEventListener('click',()=>{S.lang=el.dataset.lang;localStorage.setItem('appLang',S.lang);render()}));
 
   // Portal events
@@ -3099,6 +3102,7 @@ function bind(){
 }
 
 function bindModal(){
+  const l=t();
   const mo=g('mo');if(mo)mo.addEventListener('click',e=>{if(e.target===mo){S.modal=null;render()}});
   const mc=g('mc');if(mc)mc.addEventListener('click',()=>{S.modal=null;render()});
   const mx=g('mx');if(mx)mx.addEventListener('click',()=>{S.modal=null;render()});
